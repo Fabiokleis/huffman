@@ -3,9 +3,19 @@
 #include <stdint.h>
 #define EMPTY -999999
 
+typedef enum {
+  FREQ,
+  BITS
+} HashDataType;
+
 typedef struct hash {
-   int key;
-   uint32_t freq;
+  int key;
+  HashDataType type;
+  union {
+    uint32_t freq;
+    char* bits;
+  } data;
+  uint32_t freq;
 } Hash;
 
 Hash* create_hash(uint32_t M);

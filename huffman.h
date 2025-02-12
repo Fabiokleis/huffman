@@ -6,8 +6,9 @@
 
 typedef struct huffman {
   char* bytes;
+  char* code;
   Heap* heap;
-  Hash* hash;
+  Hash* lut;
 } Huffman;
 
 Huffman* constroi_huff(char* bytes);

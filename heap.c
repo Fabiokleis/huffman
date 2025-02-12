@@ -24,7 +24,7 @@ void arv_libera (Arvore* a) {
 }
 
 Heap* criar_heap(uint32_t capacity) {
-  printf("capacity: %d\n", capacity);
+  //printf("capacity: %d\n", capacity);
   Heap* heap = (Heap*)malloc(sizeof(Heap));
   heap->vetor = (Arvore**)malloc(capacity * sizeof(Arvore*));
   heap->size = 0;
@@ -65,7 +65,7 @@ void build_min_heap(Arvore** V, uint32_t size) {
 }
 
 void push(Heap* heap, Arvore* arv) {
-  printf("byte %c freq %d\n", arv->byte, arv->freq);
+  //printf("byte %c freq %d\n", arv->byte, arv->freq);
   if (heap->size == heap->capacity) {
     printf("heap cheio!\n");
     return;

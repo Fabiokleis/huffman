@@ -45,7 +45,7 @@ int hash_search(Hash *H, uint32_t M, int key) {
   do {
     //j = linear_probing (key, i, M);
     //j = quadratic_probing (key, i, M);
-    j = double_hash (key, i, M);
+    j = double_hash(key, i, M);
     //pruint32_tf("Testando chave: %d\n", j);
     if (H[j].key == key) {
       return j;
@@ -61,10 +61,10 @@ uint32_t hash_insert(Hash *H, uint32_t M, int key) {
   do {
     //j = linear_probing (key, i, M);
     //j = quadratic_probing (key, i, M);
-    j = double_hash (key, i, M);
+    j = double_hash(key, i, M);
     if (H[j].key == EMPTY) {
       H[j].key = key;
-      H[j].freq = 1;
+
       return j;
     }
     i++;
@@ -78,7 +78,11 @@ void hash_print(Hash *H, uint32_t M) {
   uint32_t i;
   for (i = 0; i < M; i++) {
     if (H[i].key != EMPTY) {
-      printf("%2d - %d: %d\n", i, H[i].key, H[i].freq);
+      if (FREQ == H[i].type) {
+	printf("%2d - %2d: %2d\n", i, H[i].key, H[i].data.freq);
+      } else if (BITS == H[i].type) {
+	printf("%2d - %2d: %s\n", i, H[i].key, H[i].data.bits);
+      }
     }
     else {
       printf("%2d -  \n", i);
