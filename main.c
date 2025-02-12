@@ -1,12 +1,12 @@
 #include <stdio.h>
-#include "fila.h"
+#include "heap.h"
 #include "huffman.h"
 
 int main(int argc, char** argv) {
   (void) argc;
   (void) argv;
-
-  char* texto = "hello, world!";
+  
+  char* texto = "hello";
   
   Huffman* huff = constroi_huff(texto);
 

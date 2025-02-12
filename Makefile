@@ -1,20 +1,20 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g
 
-fila.c:
-	$(CC) $(CFLAGS) -c fila.c
+heap.o: heap.c
+	$(CC) $(CFLAGS) -c heap.c
 
-hashmap.c: 
+hashmap.o: hashmap.c
 	$(CC) $(CFLAGS) -c hashmap.c	
 
-huffman.o: fila.c hashmap.c huffman.c
+huffman.o: heap.o hashmap.o huffman.c
 	$(CC) $(CFLAGS) -c huffman.c
 
-main.o: huffman.c main.c
+main.o: huffman.o
 	$(CC) $(CFLAGS) -c main.c
 
-all: fila.o hashmap.o huffman.o main.o
-	$(CC) $(CFLAGS) -o huff fila.o hashmap.o huffman.o main.o
+all: main.o
+	$(CC) $(CFLAGS) -o huff heap.o hashmap.o huffman.o main.o
 
 clean:
-	rm -f huff fila.o hashmap.o huffman.o main.o
+	rm -f huff heap.o hashmap.o huffman.o main.o
