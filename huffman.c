@@ -3,11 +3,12 @@
 #include <string.h>
 #include <stdio.h>
 
+#define MAX_SYMBOLS 127
 #define EMPTY_CHAR '\0'
 
 Hash* bytes_freqs(char *bytes, uint32_t *count) {
   uint32_t size = (uint32_t)strlen(bytes);
-  Hash* hash = create_hash(size);
+  Hash* hash = create_hash(MAX_SYMBOLS);
   for (uint32_t i = 0; i < size; ++i) {
     int idx = hash_search(hash, size, (int)bytes[i]);
     if (EMPTY == idx) {
@@ -88,29 +89,29 @@ Huffman* constroi_huff(char* bytes) {
   Huffman* huff = (Huffman*) malloc(sizeof(Huffman));
   huff->bytes = bytes;
   huff->bytes_count = strlen(bytes);
-  uint32_t lut_size = 0;
-  Hash *freqs = bytes_freqs(huff->bytes, &lut_size);
-  printf("lut size: %d\n", lut_size);
+  huff->lut_size = 0;
+  Hash *freqs = bytes_freqs(huff->bytes, &huff->lut_size);
+  printf("lut size: %d\n", huff->lut_size);
   //hash_print(freqs, (uint32_t)strlen(bytes));
 
-  huff->heap = criar_heap(huff->bytes_count);
+  huff->heap = criar_heap(MAX_SYMBOLS);
 
-  for (uint32_t i = 0; i < huff->bytes_count; ++i) {
+  for (uint32_t i = 0; i < MAX_SYMBOLS; ++i) {
     push(huff->heap, constroi_arv((char)freqs[i].key, freqs[i].data.freq, NULL, NULL));
   }
   
   freq_sum(huff->heap);
   //printf("heap size: %d\n", huff->heap->size);
 
-  huff->lut = create_hash(lut_size);
-  Arvore* root = pop(huff->heap);
+  huff->lut = create_hash(huff->lut_size);
+  huff->root = pop(huff->heap);
   //printf("root freq: %d\n", root->freq);
-  cria_huffman_lut(huff->bytes_count, huff->lut, root);
-  huff->bits_count = count_lut_bits(huff->bytes_count, huff->lut, freqs) + 1;
+  cria_huffman_lut(huff->lut_size, huff->lut, huff->root);
+  huff->bits_count = count_lut_bits(MAX_SYMBOLS, huff->lut, freqs) + 1;
 
   //printf("bit count: %d\n", bit_count);
   huff->code = (char*)malloc(sizeof(char)*huff->bits_count);
-  encoda_huffman(huff->bytes_count, huff->lut, huff->code, huff->bytes);
+  encoda_huffman(huff->lut_size, huff->lut, huff->code, huff->bytes);
   huff->code[huff->bits_count] = '\0';
   
   return huff;
