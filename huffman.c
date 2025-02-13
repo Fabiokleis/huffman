@@ -10,9 +10,9 @@ Hash* bytes_freqs(char *bytes, uint32_t *count) {
   uint32_t size = (uint32_t)strlen(bytes);
   Hash* hash = create_hash(MAX_SYMBOLS);
   for (uint32_t i = 0; i < size; ++i) {
-    int idx = hash_search(hash, size, (int)bytes[i]);
+    int idx = hash_search(hash, MAX_SYMBOLS, (int)bytes[i]);\
     if (EMPTY == idx) {
-      uint32_t n_idx = hash_insert(hash, size, (int)bytes[i]);
+      uint32_t n_idx = hash_insert(hash, MAX_SYMBOLS, (int)bytes[i]);
       hash[n_idx].type = FREQ;
       hash[n_idx].data.freq = 1;
       *count += 1;

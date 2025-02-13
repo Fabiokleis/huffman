@@ -13,7 +13,7 @@ huffman.o: heap.o hashmap.o huffman.c
 main.o: huffman.o
 	$(CC) $(CFLAGS) -c main.c
 
-all: main.o
+all: main.o main.c
 	$(CC) $(CFLAGS) -o huff heap.o hashmap.o huffman.o main.o
 
 clean:
