@@ -7,6 +7,8 @@
 typedef struct huffman {
   char* bytes;
   char* code;
+  uint32_t bits_count;
+  uint32_t bytes_count;
   Heap* heap;
   Hash* lut;
 } Huffman;

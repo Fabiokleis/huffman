@@ -5,7 +5,7 @@
 
 #define EMPTY_CHAR '\0'
 
-Hash* bytes_freqs(char *bytes) {
+Hash* bytes_freqs(char *bytes, uint32_t *count) {
   uint32_t size = (uint32_t)strlen(bytes);
   Hash* hash = create_hash(size);
   for (uint32_t i = 0; i < size; ++i) {
@@ -14,6 +14,7 @@ Hash* bytes_freqs(char *bytes) {
       uint32_t n_idx = hash_insert(hash, size, (int)bytes[i]);
       hash[n_idx].type = FREQ;
       hash[n_idx].data.freq = 1;
+      *count += 1;
     } else {
       hash[idx].type = FREQ;
       hash[idx].data.freq = hash[idx].data.freq + 1;      
@@ -32,6 +33,18 @@ void freq_sum(Heap* heap) {
     arv->dir = arv2;
     push(heap, arv);
   }
+}
+
+uint32_t count_lut_bits(uint32_t size, Hash* lut, Hash* freqs) {
+  uint32_t count = 0;
+  for (uint32_t i = 0; i < size; ++i) {
+    int idx = hash_search(lut, size, (int)freqs[i].key);
+    if (EMPTY == idx) continue;
+    if (lut[idx].data.bits != NULL) {
+      count += strlen(lut[idx].data.bits) * freqs[i].data.freq;
+    }
+  }
+  return count;
 }
 
 void cria_huffman_code(uint32_t size, Arvore* arv, char* bits, uint32_t altura, Hash* lut) {
@@ -74,30 +87,31 @@ void encoda_huffman(uint32_t lut_size, Hash* lut, char* out, char* bytes) {
 Huffman* constroi_huff(char* bytes) {
   Huffman* huff = (Huffman*) malloc(sizeof(Huffman));
   huff->bytes = bytes;
-  Hash *freqs = bytes_freqs(bytes);
+  huff->bytes_count = strlen(bytes);
+  uint32_t lut_size = 0;
+  Hash *freqs = bytes_freqs(huff->bytes, &lut_size);
+  printf("lut size: %d\n", lut_size);
   //hash_print(freqs, (uint32_t)strlen(bytes));
 
-  huff->heap = criar_heap(strlen(bytes));
+  huff->heap = criar_heap(huff->bytes_count);
 
-  //printf("****************push**************\n");
-  for (uint32_t i = 0; i < strlen(bytes); ++i) {
+  for (uint32_t i = 0; i < huff->bytes_count; ++i) {
     push(huff->heap, constroi_arv((char)freqs[i].key, freqs[i].data.freq, NULL, NULL));
   }
   
-  //printf("****************soma**************\n");
   freq_sum(huff->heap);
   //printf("heap size: %d\n", huff->heap->size);
 
-  huff->lut = create_hash(strlen(bytes));
+  huff->lut = create_hash(lut_size);
   Arvore* root = pop(huff->heap);
-  cria_huffman_lut(strlen(bytes), huff->lut, root);
   //printf("root freq: %d\n", root->freq);
+  cria_huffman_lut(huff->bytes_count, huff->lut, root);
+  huff->bits_count = count_lut_bits(huff->bytes_count, huff->lut, freqs) + 1;
 
-  uint32_t encodado_size = (strlen(bytes) + 1) * root->freq;
-  //printf("encoded size: %d\n", encodado_size);
-  huff->code = (char*)malloc(sizeof(char)*encodado_size);
-  encoda_huffman(strlen(bytes), huff->lut, huff->code, huff->bytes);
-  huff->code[encodado_size] = '\0';
+  //printf("bit count: %d\n", bit_count);
+  huff->code = (char*)malloc(sizeof(char)*huff->bits_count);
+  encoda_huffman(huff->bytes_count, huff->lut, huff->code, huff->bytes);
+  huff->code[huff->bits_count] = '\0';
   
   return huff;
 }
