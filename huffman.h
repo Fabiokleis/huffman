@@ -1,8 +1,10 @@
 #ifndef HUFFMAN_H
 #define HUFFMAN_H
+#include <stdio.h>
 #include <stdint.h>
 #include "heap.h"
 #include "hashmap.h"
+
 
 typedef struct huffman {
   char* bytes;
@@ -16,5 +18,6 @@ typedef struct huffman {
 } Huffman;
 
 Huffman* constroi_huff(char* bytes);
+void write_huff_bytes(FILE* f, Huffman* huff);
 
 #endif /* HUFFMAN_H */

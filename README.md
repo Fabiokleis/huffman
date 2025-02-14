@@ -19,3 +19,7 @@ make clean
 ```shell
 ./huff
 ```
+para checar o arquivo gerado `code.h4k`:
+```shell
+xxd -b code.h4k
+```

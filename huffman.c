@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 #define MAX_SYMBOLS 127
 #define EMPTY_CHAR '\0'
@@ -79,10 +80,37 @@ void encoda_huffman(uint32_t lut_size, Hash* lut, char* out, char* bytes) {
     int idx = hash_search(lut, lut_size, bytes[i]);
     if (EMPTY == idx) return;
 
-    printf("%c: %s\n", (char)lut[idx].key, lut[idx].data.bits);
+    //printf("%c: %s\n", (char)lut[idx].key, lut[idx].data.bits);
     memcpy(out+j, lut[idx].data.bits, strlen(lut[idx].data.bits));
     j += strlen(lut[idx].data.bits);
   }
+}
+
+void write_huff_bytes(FILE *f, Huffman* huff) {
+  uint32_t size = floor((huff->bits_count-1) / 8) + ((huff->bits_count-1) % 8 == 0 ? 0 : 1);
+  if (size == 0) size = 1; /* para char* com size menor que 8 */
+  printf("input size %d, output size %d \n", huff->bytes_count, size);
+  printf("%d/%d compressed %.2f%\n", size, huff->bytes_count, 100.0f - (((float)size / huff->bytes_count) * 100));
+  uint8_t* bytes = (uint8_t*) malloc(sizeof(uint8_t)*size);
+  uint8_t byte = 0b00000000;
+  uint8_t aux = 1;
+  uint32_t idx = 0;
+  for (uint32_t i = 0; i < huff->bits_count-1; ++i) {
+    if (huff->code[i] == '1') {
+      byte |= 1 << (8  - aux);
+      //printf("aux %d bit %d byte %b\n", aux, (8  - aux), byte);
+    }
+    if (aux == 8) {
+      bytes[idx] = byte;
+      idx++;
+      //printf("byte %b\n", byte);
+      byte = 0b00000000;
+      aux = 0;
+    }
+    aux++;
+  }
+  bytes[idx] = byte;
+  fwrite(bytes, sizeof(uint8_t), size, f);
 }
 
 Huffman* constroi_huff(char* bytes) {
