@@ -13,17 +13,20 @@ int main(int argc, char** argv) {
   
   Huffman* huff = constroi_huff(texto);
 
-  printf("codigo: %s\n", huff->code);
+  printf("codigo gerado: %s\n", huff->code);
 
   FILE* f = NULL;
-  f = fopen(CODE_FILE, "wb");
+  f = fopen(CODE_FILE, "w+b");
   if (f == NULL) {
     printf("falha abrir arquivo para escrita.\n");
     return 1;
   }
-  
+
   write_huff_bytes(f, huff);
   printf("gerado arquivo: %s\n", CODE_FILE);
+
+  fseek(f, 0, SEEK_SET);
+  read_huff_bytes(huff->h4k_size, f, NULL, huff);
   
   return 0;
 }

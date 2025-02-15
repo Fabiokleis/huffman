@@ -6,6 +6,7 @@
 
 #define MAX_SYMBOLS 127
 #define EMPTY_CHAR '\0'
+#define FILE_CHUNK_SIZE 256
 
 Hash* bytes_freqs(char *bytes, uint32_t *count) {
   uint32_t size = (uint32_t)strlen(bytes);
@@ -86,13 +87,13 @@ void encoda_huffman(uint32_t lut_size, Hash* lut, char* out, char* bytes) {
   }
 }
 
-void write_huff_bytes(FILE *f, Huffman* huff) {
+void write_huff_bytes(FILE* f, Huffman* huff) {
   uint32_t size = floor((huff->bits_count-1) / 8) + ((huff->bits_count-1) % 8 == 0 ? 0 : 1);
   if (size == 0) size = 1; /* para char* com size menor que 8 */
   printf("input size %d, output size %d \n", huff->bytes_count, size);
-  printf("%d/%d compressed %.2f%\n", size, huff->bytes_count, 100.0f - (((float)size / huff->bytes_count) * 100));
+  printf("%d/%d compressed %.2f%%\n", size, huff->bytes_count, 100.f - (((float)size / (huff->bytes_count)) * 100));
   uint8_t* bytes = (uint8_t*) malloc(sizeof(uint8_t)*size);
-  uint8_t byte = 0b00000000;
+  uint8_t byte = 0x0;
   uint8_t aux = 1;
   uint32_t idx = 0;
   for (uint32_t i = 0; i < huff->bits_count-1; ++i) {
@@ -104,13 +105,50 @@ void write_huff_bytes(FILE *f, Huffman* huff) {
       bytes[idx] = byte;
       idx++;
       //printf("byte %b\n", byte);
-      byte = 0b00000000;
+      byte = 0x0;
       aux = 0;
     }
     aux++;
   }
   bytes[idx] = byte;
+  huff->h4k_size = size;
   fwrite(bytes, sizeof(uint8_t), size, f);
+}
+
+void read_huff_bytes(uint32_t if_size, FILE* i_file, FILE* o_file, Huffman* huff) {
+  (void) o_file;
+  (void) huff;
+  uint32_t s = if_size;
+  if (s < FILE_CHUNK_SIZE) s = 1;
+  else s = ceil(if_size / FILE_CHUNK_SIZE) + (if_size % FILE_CHUNK_SIZE == 0 ? 0 : 1);
+
+  uint8_t* chunk = (uint8_t*)malloc(sizeof(uint8_t)* FILE_CHUNK_SIZE);
+  uint8_t* bits = (uint8_t*)malloc(sizeof(uint8_t) * s * FILE_CHUNK_SIZE);
+  uint32_t idx = 0;
+  uint32_t bytes_read = 0;
+  for (uint32_t i = 0; i < s; ++i) {
+    bytes_read += fread(chunk, sizeof(uint8_t), FILE_CHUNK_SIZE, i_file);
+    printf("bytes_read %d\n", bytes_read);
+    for (uint32_t j = 0; j < bytes_read; ++j) {
+      uint8_t and = 0xff;
+      for (uint8_t aux = 1; aux <= 8; ++aux) {
+	uint8_t bit = (chunk[j] & and) >> (8 - aux);
+	//printf("chunk %b bit %b aux %d\n", chunk[j], bit, aux);
+	bits[idx] = bit == 0x1 ? '1' : '0';
+	idx++;
+	and >>= 1;
+
+	/* TODO:
+	   traduzir a cada iteracao o bits no huff->lut
+	   e escrever em o_file
+	*/
+      }
+    }
+    //memset(chunk, 0, FILE_CHUNK_SIZE);
+  }
+
+  bits[bytes_read*8] = '\0';
+  printf("codigo lido: %s\n", bits);
 }
 
 Huffman* constroi_huff(char* bytes) {
