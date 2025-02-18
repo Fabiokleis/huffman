@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  k_means(img, out, HEIGHT, WIDTH, 10, 10);
+  k_means(img, out, HEIGHT, WIDTH, 4, 10);
 
   printf("----------------------------------\n");
   printf("img uint8_t %dx%dx%d\n", HEIGHT, WIDTH, 3);
