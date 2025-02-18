@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Arvore* constroi_arv(char byte, uint32_t freq, Arvore* e, Arvore* d) {
+Arvore* constroi_arv(uint32_t color, uint32_t freq, Arvore* e, Arvore* d) {
   Arvore* no = (Arvore*)malloc(sizeof(Arvore));
-  no->byte = byte;
+  no->color = color;
   no->freq = freq;
   no->esq = e;
   no->dir = d;

@@ -6,7 +6,7 @@ implementacao da arvore de huffman.
 ### build
 gera o arquivo binario huff:
 ```shell
-make all
+make
 ```
 
 ### clean

@@ -4,13 +4,13 @@
 #include <stdint.h>
 
 typedef struct arvore {
-  char byte;
+  uint32_t color;
   uint32_t freq;
   struct arvore *esq;
   struct arvore *dir;
 } Arvore;
 
-Arvore* constroi_arv(char byte, uint32_t freq, Arvore* e, Arvore* d);
+Arvore* constroi_arv(uint32_t color, uint32_t freq, Arvore* e, Arvore* d);
 bool verifica_arv_vazia(Arvore* a);
 void arv_libera(Arvore* a);
 

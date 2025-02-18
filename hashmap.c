@@ -28,9 +28,8 @@ uint32_t double_hash(uint32_t chave, uint32_t iter, uint32_t M) {
 }
 
 Hash* create_hash(uint32_t M) { 
-  uint32_t h;
   Hash *H = (Hash *)malloc(M * sizeof(Hash));
-  for (h = 0; h < M; h++) {
+  for (uint32_t h = 0; h < M; h++) {
     H[h].key = EMPTY;
   }
   return H;
@@ -40,14 +39,14 @@ void free_hash(Hash *H) {
   free(H);
 }
 
-int hash_search(Hash *H, uint32_t M, int key) {
+int hash_search(Hash *H, uint32_t M, uint32_t key) {
   uint32_t j, i = 0;
   do {
     //j = linear_probing (key, i, M);
     //j = quadratic_probing (key, i, M);
-    j = double_hash(key, i, M);
+    j = double_hash((uint32_t)key, i, M);
     //pruint32_tf("Testando chave: %d\n", j);
-    if (H[j].key == key) {
+    if ((uint32_t)H[j].key == key) {
       return j;
     }
     i++;
@@ -56,7 +55,7 @@ int hash_search(Hash *H, uint32_t M, int key) {
   return EMPTY;
 }
 
-uint32_t hash_insert(Hash *H, uint32_t M, int key) {
+uint32_t hash_insert(Hash *H, uint32_t M, uint32_t key) {
   uint32_t j, i = 0;
   do {
     //j = linear_probing (key, i, M);
@@ -79,9 +78,9 @@ void hash_print(Hash *H, uint32_t M) {
   for (i = 0; i < M; i++) {
     if (H[i].key != EMPTY) {
       if (FREQ == H[i].type) {
-	printf("%2d - %2d: %2d\n", i, H[i].key, H[i].data.freq);
+	printf("%2d - %2d: %2d\n", i, (uint32_t)H[i].key, H[i].data.freq);
       } else if (BITS == H[i].type) {
-	printf("%2d - %2d: %s\n", i, H[i].key, H[i].data.bits);
+	printf("%2d - %2d: %s\n", i, (uint32_t)H[i].key, H[i].data.bits);
       }
     }
     else {
