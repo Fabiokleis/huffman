@@ -6,6 +6,7 @@
 typedef struct arvore {
   uint32_t color;
   uint32_t freq;
+  uint32_t altura;
   struct arvore *esq;
   struct arvore *dir;
 } Arvore;
