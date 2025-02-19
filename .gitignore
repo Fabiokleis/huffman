@@ -1,3 +1,4 @@
 huff
 *.o
 *.h4k
+*.bin

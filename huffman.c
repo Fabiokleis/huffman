@@ -31,6 +31,11 @@ Pixel unpack_color(uint32_t color_pack) {
   return pixel;
 }
 
+/*
+  calcula a frequencia de cada cor da img
+  inserindo num Hash*
+  @huff Huffman* struct huffman
+*/
 Hash* color_freqs(Huffman* huff) {
   Hash* hash = create_hash(MAX_SYMBOLS);
   
@@ -52,6 +57,14 @@ Hash* color_freqs(Huffman* huff) {
   return hash;
 }
 
+/*
+  cria a arvore de huffman fazendo pop da heap
+  com todas as frequencias e faz push do node
+  esquerdo e direito no heap somando frequencias
+  a cada 2 pops.
+
+  @heap Heap* heap dos nodes da arvore
+*/
 void freq_sum(Heap* heap) {
   while (heap->size > 1) {
     Arvore* arv1 = pop(heap);
@@ -62,6 +75,15 @@ void freq_sum(Heap* heap) {
   }
 }
 
+/*
+  conta o total de bits necessarios para escrever
+  o huffman ja codificado, calcula lendo cada frequencia
+  multiplicando pelo strlen dos bits.
+
+  @size uint32_t tamanho do hash de frequencias
+  @freqs Hash* hashmap das frequencias
+  @lut Hash* lookup table ja preenchida
+*/
 uint32_t count_lut_bits(uint32_t size, Hash* lut, Hash* freqs) {
   uint32_t count = 0;
   for (uint32_t i = 0; i < size; ++i) {
@@ -74,6 +96,17 @@ uint32_t count_lut_bits(uint32_t size, Hash* lut, Hash* freqs) {
   return count;
 }
 
+/*
+  funcao que percorre a arvore in-ordem adicionando bits
+  conforme anda para esquerda e para direita em char* bits,
+  quando encontrado node com esq e dir NULL e adicionado na
+  Hash* lut.
+
+  @size uint32_t tamanho do hashmap da lut
+  @arv Arvore* node que esta sendo percorrido (raiz por primeiro)
+  @altura uint32_t numero de bits percorridos a cada chamada recursiva
+  @lut *Hash lookup table a ser constriuida
+*/
 void cria_huffman_code(uint32_t size, Arvore* arv, char* bits, uint32_t altura, Hash* lut) {
   if (arv == NULL) return;
   if (arv->esq == NULL && arv->dir == NULL) {
@@ -97,7 +130,15 @@ void cria_huffman_code(uint32_t size, Arvore* arv, char* bits, uint32_t altura, 
   cria_huffman_code(size, arv->dir, bits, altura + 1, lut);
 }
 
-void cria_huffman_lut(uint32_t size, Hash* lut, Arvore *raiz) {
+/*
+  cria a lut percorrendo a raiz da arvore de huffman
+  
+  @size uint32_t tamanho da lut
+  @lut Hash* lookup table a ser preenchida
+  @raiz Arvore* ultimo item da heap (arvore de huffman ja construida)
+  
+*/
+void cria_huffman_lut(uint32_t size, Hash* lut, Arvore* raiz) {
   printf("-----------------------------------lut------------------------------------\n");
 
    /* in case of one single entry in lut */
@@ -113,6 +154,12 @@ void cria_huffman_lut(uint32_t size, Hash* lut, Arvore *raiz) {
   cria_huffman_code(size, raiz, bits, 0, lut);
 }
 
+/*
+  percorre a imagem pega cada cor e olha na lut
+  e escreve a codificacao dentro do huff->code
+
+  @huff Huffman* struct huffman img e lut
+*/
 void encoda_huffman(Huffman* huff) {
   printf("---------------------------huffman-encoded--------------------------------\n");
   uint32_t j = 0;
@@ -134,17 +181,25 @@ void encoda_huffman(Huffman* huff) {
   huff->code[huff->bits_count] = '\0';
 }
 
+/*
+  escreve em binario os bits do char* code das
+  cores ja codificadas com huffman no arquivo de saida.
+  
+  @f FILE* arquivo de escrita binaria
+  @huff Huffman* struct huffman com a lut ja feita e o char* code
+*/
 void write_huff_bytes(FILE* f, Huffman* huff) {
   uint32_t size = floor((huff->bits_count-1) / 8) + ((huff->bits_count-1) % 8 == 0 ? 0 : 1);
   if (size == 0) size = 1; /* para char* com size menor que 8 */
   printf("input size %d bytes, output size %d bytes \n", huff->height * huff->width * 3, size);
   printf("%d/%d compressed %.2f%%\n", size, huff->height * huff->width * 3, 100.f - (((float)size / (huff->height * huff->width * 3)) * 100));
-  uint8_t* bytes = (uint8_t*) malloc(sizeof(uint8_t)*size);
+  uint8_t* bytes = (uint8_t*) malloc(sizeof(uint8_t)*size); /* vetor com bytes a serem escritos */
   if (NULL == bytes) {
     fprintf(stderr, "ERROR: failed to alloc bits %s\n", strerror(errno));
   }
-  uint8_t byte = 0x0;
-  uint8_t aux = 1;
+
+  uint8_t byte = 0x0; /* byte que sera preenchido com cada bit */
+  uint8_t aux = 1; /* auxilio para shiffitar para esquerda os bits de byte */
   uint32_t idx = 0;
   for (uint32_t i = 0; i < huff->bits_count-1; ++i) {
     if (huff->code[i] == '1') {
@@ -160,7 +215,7 @@ void write_huff_bytes(FILE* f, Huffman* huff) {
     }
     aux++;
   }
-  bytes[idx] = byte;
+  bytes[idx] = byte; /* ultimo byte restante */
   huff->h4k_size = size;
   fwrite(bytes, sizeof(uint8_t), size, f);
 }
@@ -222,6 +277,74 @@ void read_huff_bytes(uint32_t if_size, FILE* i_file, FILE* o_file, Huffman* huff
   printf("huffman decoded %s\n", bits);
 }
 
+/*
+  pega arvore de huffman e copia os bits em bytes
+
+  @arv Arvore* struct arvore com as cores
+  @altura profundidade na arvore
+  @cursor uint32_t offset de bytes escritos em bytes
+  @bytes uint8_t bytes com os bits de cada chamada recursiva
+
+*/
+void encoda_huff_tree(Arvore* arv, uint32_t altura, uint32_t cursor, uint8_t* bytes) {
+  if (arv == NULL) return;
+
+  /* anda um byte no vetor de bytes (2bits * 4 = 8 bits) */
+  if (altura == 4) {
+    cursor++;
+    altura = 0;
+  }
+  
+  bytes[cursor] >>= (2 * altura);
+  if (arv->esq != NULL && arv->dir != NULL) {
+    bytes[cursor] |= 3;
+  } else if (arv->esq != NULL && arv->dir == NULL) {
+    bytes[cursor] |= 2;
+  } else if (arv->esq == NULL && arv->dir != NULL) {
+    bytes[cursor] |= 1;
+  } else {
+    bytes[cursor] >>= 2;
+    Pixel pixel = unpack_color(arv->color);    
+    bytes[++cursor] = pixel.r;
+    bytes[++cursor] = pixel.g;
+    bytes[++cursor] = pixel.b;
+    return;
+  }
+  
+  encoda_huff_tree(arv->esq, altura+1, cursor, bytes);
+  encoda_huff_tree(arv->dir, altura+1, cursor, bytes);
+}
+
+uint32_t conta_nodes(Arvore* arv, uint32_t total) {
+  printf("arv %b\n", arv->color);
+  if (arv == NULL) return total;
+  if (arv->esq == NULL && arv->dir == NULL) return total;
+  return conta_nodes(arv->esq, total + 1) + conta_nodes(arv->dir, total + 1);
+}
+
+/*
+  codifica a arvore de huffman e escreve em um arquivo binario
+
+  @raiz Arvore* arvore huffman com as cores
+  @t_colors uint8_t total de cores diferentes
+  @file FILE* arquivo para escrita em binario
+*/ 
+void write_huff_tree(Huffman* huff, FILE* file) {
+  uint32_t total_bytes = (huff->total_nodes * (huff->total_colors * 3)) / 8;
+  uint8_t* bytes = (uint8_t*)malloc(total_bytes * sizeof(uint8_t));
+  encoda_huff_tree(huff->root, 0, 0, bytes);
+  fwrite(bytes, sizeof(uint8_t), total_bytes, file);
+}
+
+/*
+  faz a codificacao de huffman, conta frequencia e monta
+  a arvore de huffman usando um heap minimo e constroi
+  a lookup table que codifica as cores
+  
+  @img uint8_t**** ponteiro para imagem normalizada
+  @height uint32_t height altura da imagem
+  @width uint32_t width largura da imagem
+*/
 Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
   Huffman* huff = (Huffman*) malloc(sizeof(Huffman));
   huff->img = img;
@@ -230,17 +353,22 @@ Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
   Hash* freqs = color_freqs(huff);
   //hash_print(freqs, MAX_SYMBOLS);
 
+  /* cria heap minimo com todas nodes com os valores das frequencias */
   huff->heap = criar_heap(MAX_SYMBOLS);
+  huff->total_colors = 0;
   for (uint32_t i = 0; i < MAX_SYMBOLS; ++i) {
     if (EMPTY != freqs[i].key) {
       push(huff->heap, constroi_arv((uint32_t)freqs[i].key, freqs[i].data.freq, NULL, NULL));
+      huff->total_colors++;
     }
   }
 
-  freq_sum(huff->heap);
+  freq_sum(huff->heap); /* monta arvore */
   huff->lut = create_hash(MAX_SYMBOLS);
-  huff->root = pop(huff->heap);
-  //printf("root freq: %d\n", root->freq);
+  huff->root = pop(huff->heap); /* ultimo item do heap minimo e a raiz da arvore */
+  huff->total_nodes = conta_nodes(huff->root, 0);
+  
+  printf("total nodes: %d\n", huff->total_nodes);
   cria_huffman_lut(MAX_SYMBOLS, huff->lut, huff->root);
   //hash_print(huff->lut, MAX_SYMBOLS);
   huff->bits_count = count_lut_bits(MAX_SYMBOLS, huff->lut, freqs) + 1;
@@ -248,6 +376,8 @@ Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
 
   huff->code = (char*)malloc(huff->bits_count * sizeof(char));
   encoda_huffman(huff);
+
+  
 
   return huff;
 }

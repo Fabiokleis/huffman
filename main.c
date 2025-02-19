@@ -6,6 +6,7 @@
 #include "kmeans.h"
 
 #define CODE_FILE "code.h4k\0"
+#define TREE_FILE "tree.bin\0"
 #define HEIGHT 4
 #define WIDTH 4
 #define COLORS 20
@@ -53,7 +54,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  k_means(img, out, HEIGHT, WIDTH, 10, 10);
+  k_means(img, out, HEIGHT, WIDTH, 4, 10);
 
   printf("----------------------------------\n");
   printf("img uint8_t %dx%dx%d\n", HEIGHT, WIDTH, 3);
@@ -69,14 +70,20 @@ int main(int argc, char** argv) {
   FILE* f = fopen(CODE_FILE, "w+b");
   if (NULL == f) {
    fprintf(stderr, "ERROR: failed to open %s: %s\n", CODE_FILE, strerror(errno));
-
    return 1;
   }
 
   write_huff_bytes(f, huff);
 
-  fseek(f, 0, SEEK_SET);
-  read_huff_bytes(huff->h4k_size, f, NULL, huff);
+  FILE* bin_arv = fopen(TREE_FILE, "wb");
+  if (NULL == bin_arv) {
+    fprintf(stderr, "ERROR: failed to open %s: %s\n", TREE_FILE, strerror(errno));
+    return 1;
+  }
+  write_huff_tree(huff, bin_arv);
+
+  //fseek(f, 0, SEEK_SET);
+  //read_huff_bytes(huff->h4k_size, f, NULL, huff);
 
   return 0;
 }
