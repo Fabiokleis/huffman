@@ -83,7 +83,7 @@ uint32_t count_lut_bits(uint32_t size, Hash* lut, Hash* freqs) {
 }
 
 /*
-  funcao que percorre a arvore in-ordem adicionando bits
+  funcao que percorre a arvore pre-ordem adicionando bits
   conforme anda para esquerda e para direita em char* bits,
   quando encontrado node com esq e dir NULL e adicionado na
   Hash* lut.
@@ -304,61 +304,73 @@ void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
     }
     
     if (arv->esq == NULL && arv->dir == NULL) {
+      printf("no 00\n");
       //bytes[cursor] |= 0x0 << (6 - (2 * bits_offset));
       printf("offset %d\n", bits_offset);
 
       Pixel pixel = unpack_color(arv->color);
-      printf("color (%08b, %08b, %08b)\n", pixel.r, pixel.g, pixel.b);
+      printf("cursor %d color (%08b, %08b, %08b)\n", cursor, pixel.r, pixel.g, pixel.b);
 
-      /*
-	0xFC 252 11111100
-	0x03 3   00000011
-      */
       if (bits_offset == 0) {
-	bytes[cursor] |= (pixel.r & 0xFC) >> 2;
-	bytes[++cursor] |= (pixel.r & 0x03) << 6;
-	bytes[cursor] |= (pixel.g & 0xFC) >> 2;
-	bytes[++cursor] |= (pixel.g & 0x03) << 6;
-	bytes[cursor] |= (pixel.b & 0xFC) >> 2;
-	bytes[++cursor] |= (pixel.b & 0x03) << 6;
-	printf("cursor %d\n", cursor);
+	/*
+	  0xFC 252 11111100
+	  0x03 3   00000011
+	*/
+	bytes[cursor] |= (pixel.r >> 2);
+	printf("R bytes: %d\n", bytes[cursor]);
+	bytes[++cursor] |= (pixel.r << 6);
+	printf("R bytes: %d\n", bytes[cursor]);
+	bytes[cursor] |= (pixel.g >> 2);
+	printf("G bytes: %d\n", bytes[cursor]);
+	bytes[++cursor] |= (pixel.g << 6);
+	printf("G bytes: %d\n", bytes[cursor]);
+	bytes[cursor] |= (pixel.b >> 2);
+	printf("B bytes: %d\n", bytes[cursor]);
+	bytes[++cursor] |= (pixel.b << 6);
 	bits_offset = 1;
-      }
-
-      /*
-	0x0F 15  00001111
-	0xF0 240 11110000
-      */
-      if (bits_offset == 1) {
-	bytes[cursor] |= (pixel.r & 0x0F) >> 4;
-	bytes[++cursor] |= (pixel.r & 0xF0) << 4;
-	bytes[cursor] |= (pixel.g & 0x0F) >> 4;
-	bytes[++cursor] |= (pixel.g & 0xF0) << 4;
-	bytes[cursor] |= (pixel.b & 0x0F) >> 4;
-	bytes[++cursor] |= (pixel.b & 0xF0) << 4;
+	printf("B bytes: %d\n", bytes[cursor]);
+      } else if (bits_offset == 1) {
+	/*
+	  0x0F 15  00001111
+	  0xF0 240 11110000
+	*/	
+	bytes[cursor] |= (pixel.r >> 4);// & 0x0F;
+	bytes[++cursor] |= (pixel.r << 4);// & 0xF0;
+	printf("R bytes: %08b\n", bytes[cursor]);
+	bytes[cursor] |= (pixel.g >> 4);
+	printf("G bytes: %08b\n", bytes[cursor]);
+	bytes[++cursor] |= (pixel.g << 4);
+	printf("G bytes: %08b\n", bytes[cursor]);
+	bytes[cursor] |= (pixel.b >> 4);
+	printf("B bytes: %08b\n", bytes[cursor]);
+	bytes[++cursor] |= (pixel.b << 4);
+	printf("B bytes: %08b\n", bytes[cursor]);
 	bits_offset = 2;
-      }
-
-      /*
-	0x03  3   00000011
-	0xFC  252 11111100
-	0xC0  192 11000000     
-      */
-      if (bits_offset == 2) {
-	bytes[cursor] |= (pixel.r & 0xC0) >> 6;
-	bytes[++cursor] |= (pixel.r & 0x03) << 6;
-	bytes[cursor] |= (pixel.g & 0xFC) >> 2;
-	bytes[++cursor] |= (pixel.g & 0x03) << 6;
-	bytes[cursor] |= (pixel.b & 0xFC) >> 2;
-	bytes[++cursor] |= (pixel.b & 0x03) << 6;
-	bits_offset = 1;
-      }
-
-      /* fit */
-      if (bits_offset == 3) {
+      } else if (bits_offset == 2) {
+	/*
+	  0x03  3   00000011
+	  0xFC  252 11111100
+	  0xC0  192 11000000     
+	*/
+	bytes[cursor] |= (pixel.r >> 6);
+	printf("R bytes: %08b %08b %08b\n", pixel.r, pixel.r >> 6, bytes[cursor]);
+	bytes[++cursor] |= (pixel.r << 2);
+	printf("R bytes: %08b %08b %08b\n", pixel.r, pixel.r << 2, bytes[cursor]);
+	bytes[cursor] |= (pixel.g >> 6);
+	printf("G bytes: %08b %08b %08b\n", pixel.g, pixel.g >> 6, bytes[cursor]);
+	bytes[++cursor] |= (pixel.g << 2);
+	printf("G bytes: %08b %08b %08b\n", pixel.g, pixel.g << 2, bytes[cursor]);
+	bytes[cursor] |= (pixel.b >> 6);
+	printf("B bytes: %08b %08b %08b\n", pixel.b, pixel.b >> 6, bytes[cursor]);
+	bytes[++cursor] |= (pixel.b << 2); 
+	printf("B bytes: %08b %08b %08b\n", pixel.b, pixel.b << 2, bytes[cursor]);
+	bits_offset = 3;
+      } else if (bits_offset == 3) {
+	/* fit */
 	bytes[++cursor] = pixel.r;
 	bytes[++cursor] = pixel.g;
 	bytes[++cursor] = pixel.b;
+	cursor++; // next byte
 	bits_offset = 0;
       }
       printf("cursor %d\n", cursor);
