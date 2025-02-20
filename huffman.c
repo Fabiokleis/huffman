@@ -51,12 +51,13 @@ Hash* color_freqs(Huffman* huff) {
 
   @heap Heap* heap dos nodes da arvore
 */
-void freq_sum(Heap* heap) {
+void freq_sum(uint32_t* total_nodes, Heap* heap) {
   while (heap->size > 1) {
     Arvore* arv1 = pop(heap);
     if (0 == arv1->freq) continue; /* ignore empty */
     Arvore* arv2 = pop(heap);
     Arvore* arv = constroi_arv((uint32_t)EMPTY_CHAR, arv1->freq + arv2->freq, arv1, arv2);
+    (*total_nodes) += 3;
     push(heap, arv);
   }
 }
@@ -271,119 +272,99 @@ void read_huff_bytes(uint32_t if_size, FILE* i_file, FILE* o_file, Huffman* huff
 */
 void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
   Stack* stack = create_stack();
-  stack_push(stack, raiz);
 
   uint32_t cursor = 0;
   uint32_t bits_offset = 0;
-  uint32_t total_bits = 0;
-  while (!stack_is_empty(stack)) {
-    Arvore* arv = stack_pop(stack);
+
+  Arvore* arv = raiz;
+  
+  while (arv != NULL || !stack_is_empty(stack)) {
+    while (arv != NULL) {
+      stack_push(stack, arv);
+      arv = arv->esq;
+    }
+    
+    arv = stack_pop(stack);
 
     if (bits_offset == 4) {
       bits_offset = 0;
       cursor++;
-      printf("cursor dentro %d\n", cursor);
     }
 
+    // copia 11 para os dois bits mais significativos
     if (arv->esq != NULL && arv->dir != NULL) {
       bytes[cursor] |= 0x3 << (6 - (2 * bits_offset));
       bits_offset += 1;
       printf("no 11\n");
     }
-
+    
+    // copia 10 para os dois bits mais significativos
     if (arv->esq != NULL && arv->dir == NULL) {
       bytes[cursor] |= 0x2 << (6 - (2 * bits_offset));
       bits_offset += 1;
       printf("no 10\n");
     }
-    
+
+    // copia 01 para os dois bits mais significativos
     if (arv->esq == NULL && arv->dir != NULL) {
       bytes[cursor] |= 0x1 << (6 - (2 * bits_offset));
       bits_offset += 1;
-      printf("no 01\n");
+      printf("no 01\n"); 
     }
-    
+
+    /*
+      copia 00 para os dois bits mais significativos
+      e as cores em sequencia, ajusta os offsets de bits
+      para fitar os 24 bits em sequencia.
+    */
     if (arv->esq == NULL && arv->dir == NULL) {
       printf("no 00\n");
-      //bytes[cursor] |= 0x0 << (6 - (2 * bits_offset));
       printf("offset %d\n", bits_offset);
 
       Pixel pixel = unpack_color(arv->color);
       printf("cursor %d color (%08b, %08b, %08b)\n", cursor, pixel.r, pixel.g, pixel.b);
 
       if (bits_offset == 0) {
-	/*
-	  0xFC 252 11111100
-	  0x03 3   00000011
-	*/
+	/* 00 + 3 canais, shiffta 2 e 6 alternadamente */
 	bytes[cursor] |= (pixel.r >> 2);
-	printf("R bytes: %d\n", bytes[cursor]);
 	bytes[++cursor] |= (pixel.r << 6);
-	printf("R bytes: %d\n", bytes[cursor]);
 	bytes[cursor] |= (pixel.g >> 2);
-	printf("G bytes: %d\n", bytes[cursor]);
 	bytes[++cursor] |= (pixel.g << 6);
-	printf("G bytes: %d\n", bytes[cursor]);
 	bytes[cursor] |= (pixel.b >> 2);
-	printf("B bytes: %d\n", bytes[cursor]);
 	bytes[++cursor] |= (pixel.b << 6);
 	bits_offset = 1;
-	printf("B bytes: %d\n", bytes[cursor]);
       } else if (bits_offset == 1) {
-	/*
-	  0x0F 15  00001111
-	  0xF0 240 11110000
-	*/	
-	bytes[cursor] |= (pixel.r >> 4);// & 0x0F;
-	bytes[++cursor] |= (pixel.r << 4);// & 0xF0;
-	printf("R bytes: %08b\n", bytes[cursor]);
+	/* 2 * bits_offset + 00 + 3 canais, shiffta 4 alternadamente */
+	bytes[cursor] |= (pixel.r >> 4);;
+	bytes[++cursor] |= (pixel.r << 4);
 	bytes[cursor] |= (pixel.g >> 4);
-	printf("G bytes: %08b\n", bytes[cursor]);
 	bytes[++cursor] |= (pixel.g << 4);
-	printf("G bytes: %08b\n", bytes[cursor]);
 	bytes[cursor] |= (pixel.b >> 4);
-	printf("B bytes: %08b\n", bytes[cursor]);
 	bytes[++cursor] |= (pixel.b << 4);
-	printf("B bytes: %08b\n", bytes[cursor]);
 	bits_offset = 2;
       } else if (bits_offset == 2) {
-	/*
-	  0x03  3   00000011
-	  0xFC  252 11111100
-	  0xC0  192 11000000     
-	*/
+	/* 2 * bits_offset + 00 + 3 canais, shiffta 6 e 2 alternadamente */
 	bytes[cursor] |= (pixel.r >> 6);
-	printf("R bytes: %08b %08b %08b\n", pixel.r, pixel.r >> 6, bytes[cursor]);
 	bytes[++cursor] |= (pixel.r << 2);
-	printf("R bytes: %08b %08b %08b\n", pixel.r, pixel.r << 2, bytes[cursor]);
 	bytes[cursor] |= (pixel.g >> 6);
-	printf("G bytes: %08b %08b %08b\n", pixel.g, pixel.g >> 6, bytes[cursor]);
 	bytes[++cursor] |= (pixel.g << 2);
-	printf("G bytes: %08b %08b %08b\n", pixel.g, pixel.g << 2, bytes[cursor]);
 	bytes[cursor] |= (pixel.b >> 6);
-	printf("B bytes: %08b %08b %08b\n", pixel.b, pixel.b >> 6, bytes[cursor]);
 	bytes[++cursor] |= (pixel.b << 2); 
-	printf("B bytes: %08b %08b %08b\n", pixel.b, pixel.b << 2, bytes[cursor]);
 	bits_offset = 3;
       } else if (bits_offset == 3) {
-	/* fit */
+	/* 2 * bits_offset + 00 = 8 bits, faz fit em cada byte */
 	bytes[++cursor] = pixel.r;
 	bytes[++cursor] = pixel.g;
 	bytes[++cursor] = pixel.b;
 	cursor++; // next byte
 	bits_offset = 0;
       }
-      printf("cursor %d\n", cursor);
+      //printf("cursor %d\n", cursor);
     }
-    total_bits += bits_offset;
-    if (arv->esq != NULL) stack_push(stack, arv->esq);
-    if (arv->dir != NULL) stack_push(stack, arv->dir);
+    arv = arv->dir;
   }
 
-  printf("stack %d %d\n", cursor, total_bits * 2);
-  /* for (uint32_t i = 0; i < stack->; ++i) { */
-  /*   if (heap->vetor[i] != NULL) printf("%08b\n", heap->vetor[i]->color); */
-  /* } */
+  printf("cursor %d\n", cursor);
 }
 
 /*
@@ -393,14 +374,15 @@ void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
   @file FILE* arquivo para escrita em binario
 */ 
 void write_huff_tree(Huffman* huff, FILE* file) {
-  uint32_t total_bytes = (huff->total_nodes * (huff->total_colors * 3 * 8)) / 8;
-  printf("len %d\n", total_bytes);
-  if (huff->total_nodes < 3) total_bytes = 4; // uma cor 3 bytes + 1 byte zerado 00
+  uint32_t nodes_bytes = (uint32_t) ceil(huff->total_nodes * 2.f / 8.f);
+  printf("nodes bytes %d\n", nodes_bytes);
+  uint32_t total_bytes = nodes_bytes + (huff->total_colors * 3);
+  printf("total bytes %d\n", total_bytes);
   uint8_t* bytes = (uint8_t*)calloc(total_bytes * sizeof(uint8_t), sizeof(uint8_t));
   //pre_imprime_arv(huff->root);
   encoda_huff_tree(huff->root, bytes);
 
-  printf("bytes\n");
+  printf("arvore codificada in-ordem\n");
   for (uint32_t i = 0; i < total_bytes; ++i) {
     printf("%08b\n", bytes[i]);
   }
@@ -437,10 +419,10 @@ Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
 
   printf("total colors: %d\n", huff->total_colors);
 
-  freq_sum(huff->heap); /* monta arvore */
+  freq_sum(&huff->total_nodes, huff->heap); /* monta arvore */
   huff->lut = create_hash(MAX_SYMBOLS);
   huff->root = pop(huff->heap); /* ultimo item do heap minimo e a raiz da arvore */
-  huff->total_nodes = conta_nodes(huff->root, 0);
+  //huff->total_nodes = conta_nodes(huff->root, 0);
   
   printf("total nodes: %d\n", huff->total_nodes);
   cria_huffman_lut(MAX_SYMBOLS, huff->lut, huff->root);
