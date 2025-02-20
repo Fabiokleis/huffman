@@ -295,76 +295,112 @@ void pre_imprime_arv (Arvore *arv) {
   }
 }
 
-
 /*
   pega arvore de huffman e copia os bits em bytes
 
   @arv Arvore* struct arvore com as cores e altura
-  @bytes uint8_t bytes com os bits de cada chamada recursiva
+  @bytes uint8_t* bytes com os bits dos nos e cores
 
 */
-void encoda_huff_tree(Arvore* arv, uint32_t altura, uint8_t* bytes) {
-  if (arv != NULL) {
+void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
+  Heap* heap = criar_heap(MAX_SYMBOLS);
+  push(heap, raiz);
 
-    if (altura == 4) altura = 0;
-    
-    /* anda um byte no vetor de bytes (2bits * 4 = 8 bits) */
-    if (arv->esq != NULL && arv->dir != NULL) {    
-      //bytes[cursor] |= (3 << (8 - (2 * altura)));
-    } else if (arv->esq != NULL && arv->dir == NULL) {
-      //bytes[cursor] |= (2 << (8 - (2 * altura)));
-    } else if (arv->esq == NULL && arv->dir != NULL) {
-      //bytes[cursor] |= (1 << (8 - (2 * altura)));
-    } else {
-      Pixel pixel = unpack_color(arv->color);
-      printf("altura %d color (%b, %b, %b)\n", altura, pixel.r, pixel.g, pixel.b);
-      if (altura == 0) {
-	*bytes |= (pixel.r >> 2) & 0x3F; // 0011.1111 2 primeiros bits + 0 bits da altura = 6 bits R
-	bytes++; // proximo byte
-	*bytes |= (pixel.r & 0x3) << 6; // 1100.0000 resto do R 2 bits
-	*bytes |= (pixel.g >> 2) & 0x3F; // 0011.1111 pula 2 ultimos bits do R, 6 bits do G
-	bytes++; // proximo byte
-	*bytes |= (pixel.g & 0x3) << 6; // 1100.0000 resto do G 2 bits
-	*bytes |= (pixel.b >> 2) & 0x3F; // 0011.1111 pula 2 ultimos bits do G, 6 bits do B
-	bytes++; // proximo byte
-	printf("b: %b %b\n", pixel.b, pixel.b & 0x3);
-	*bytes |= (pixel.b & 0x3) << 6; // 1100.0000 resto do B 2 bits
-      } else if (altura == 1) {
-	printf("altura %d %p color (%d, %d, %d)\n", altura, bytes, pixel.r, pixel.g, pixel.b);
-	*bytes |= (pixel.r >> 4) & 0xF0; // 0000.1111 2 primeiros bits + 2 bits da altura = 4 bits R
-	bytes++; // proximo byte
-	*bytes |= (pixel.r & 0xF) << 4; // 1111.0000 resto do R 4 bits
-	*bytes |= (pixel.g >> 4) & 0xF0; // 0000.1111 pula 4 ultimos bits do R, 4 bits do G
-	bytes++; // proximo byte
-	*bytes |= (pixel.g & 0xF) << 4; // 1111.0000 resto do G 4 bits
-	*bytes |= (pixel.b >> 4) & 0xF0; // 0000.1111 pula 4 ultimos bits do G, 4 bits do B
-	bytes++; // proximo byte
-	*bytes |= (pixel.b & 0xF) << 4; // 1111.0000 resto do B 4 bits
-      } else if (altura == 2) {
-	printf("altura %d color (%d, %d, %d)\n", altura, pixel.r, pixel.g, pixel.b);
-	/* *bytes |= (pixel.r & 0x3); // 0000.0011 2 primeiros bits + 4 bits da altura = 2 bits R */
-	/* bytes++; // proximo byte */
-	/* *bytes |= (pixel.r & 0xFC); // 1111.1100 resto do R 6 bits */
-	/* *bytes |= (pixel.g & 0x3); // 0000.0011 pula 6 ultimos bits do R, 2 bits do G */
-	/* bytes++; // proximo byte */
-	/* *bytes |= (pixel.g & 0xFC); // 1111.1100 resto do G 6 bits */
-	/* *bytes |= (pixel.b & 0x3); // 0000.0011 pula 6 ultimos bits do G, 2 bits do B */
-	/* bytes++; // proximo byte */
-	/* *bytes |= (pixel.b & 0xFC); // 1111.1100 resto do B 6 bits */
-      } else if (altura == 3) {
-	// copia os bytes inteiros
-	//bytes++; // proximo byte
-	//*bytes |= pixel.r;
-	//bytes++; // proximo byte
-	//*bytes |= pixel.g;
-	//bytes++; // proximo byte
-	//*bytes |= pixel.b;
-      }
-      //return;
+  uint32_t cursor = 0;
+  uint32_t bits_offset = 0;
+  uint32_t total_bits = 0;
+  while (heap->size > 0) {
+    Arvore* arv = pop(heap);
+
+    if (bits_offset == 4) {
+      bits_offset = 0;
+      cursor++;
     }
 
-    encoda_huff_tree(arv->esq, altura + 1, bytes);
-    encoda_huff_tree(arv->dir, altura + 1, bytes);
+    if (arv->esq != NULL && arv->dir != NULL) {
+      bytes[cursor] |= 0x3 << (6 - (2 * bits_offset));
+      bits_offset += 1;
+      printf("no 11\n");
+    }
+
+    if (arv->esq != NULL && arv->dir == NULL) {
+      bytes[cursor] |= 0x2 << (6 - (2 * bits_offset));
+      bits_offset += 1;
+      printf("no 10\n");
+    }
+    
+    if (arv->esq == NULL && arv->dir != NULL) {
+      bytes[cursor] |= 0x1 << (6 - (2 * bits_offset));
+      bits_offset += 1;
+      printf("no 01\n");
+    }
+    
+    if (arv->esq == NULL && arv->dir == NULL) {
+      //bytes[cursor] |= 0x0 << (6 - (2 * bits_offset));
+      printf("offset %d\n", bits_offset);
+
+      Pixel pixel = unpack_color(arv->color);
+      printf("color (%08b, %08b, %08b)\n", pixel.r, pixel.g, pixel.b);
+
+      /*
+	0xFC 252 11111100
+	0x03 3   00000011
+      */
+      if (bits_offset == 0) {
+	bytes[cursor] |= (pixel.r & 0xFC) >> 2;
+	bytes[++cursor] |= (pixel.r & 0x03) << 6;
+	bytes[cursor] |= (pixel.g & 0xFC) >> 2;
+	bytes[++cursor] |= (pixel.g & 0x03) << 6;
+	bytes[cursor] |= (pixel.b & 0xFC) >> 2;
+	bytes[++cursor] |= (pixel.b & 0x03) << 6;
+	bits_offset = 1;
+      }
+
+      /*
+	0x0F 15  00001111
+	0xF0 240 11110000
+      */
+      if (bits_offset == 1) {
+	bytes[cursor] |= (pixel.r & 0x0F) >> 4;
+	bytes[++cursor] |= (pixel.r & 0xF0) << 4;
+	bytes[cursor] |= (pixel.g & 0x0F) >> 4;
+	bytes[++cursor] |= (pixel.g & 0xF0) << 4;
+	bytes[cursor] |= (pixel.b & 0x0F) >> 4;
+	bytes[++cursor] |= (pixel.b & 0xF0) << 4;
+	bits_offset = 2;
+      }
+
+      /*
+	0x03  3   00000011
+	0xFC  252 11111100
+	0xC0  192 11000000     
+      */
+      if (bits_offset == 2) {
+	bytes[cursor] |= (pixel.r & 0xC0) >> 6;
+	bytes[++cursor] |= (pixel.r & 0x03) << 6;
+	bytes[cursor] |= (pixel.g & 0xFC) >> 2;
+	bytes[++cursor] |= (pixel.g & 0x03) << 6;
+	bytes[cursor] |= (pixel.b & 0xFC) >> 2;
+	bytes[++cursor] |= (pixel.b & 0x03) << 6;
+	bits_offset = 1;
+      }
+
+      /* fit */
+      if (bits_offset == 3) {
+	bytes[++cursor] |= pixel.r;
+	bytes[++cursor] |= pixel.g;
+	bytes[++cursor] |= pixel.b;
+	bits_offset = 0;
+      }
+    }
+    total_bits += bits_offset;
+    if (arv->esq != NULL) push(heap, arv->esq);
+    if (arv->dir != NULL) push(heap, arv->dir);
+  }
+
+  printf("heap %d %d\n", cursor, total_bits * 2);
+  for (uint32_t i = 0; i < MAX_SYMBOLS; ++i) {
+    if (heap->vetor[i] != NULL) printf("%08b\n", heap->vetor[i]->color);
   }
 }
 
@@ -375,12 +411,17 @@ void encoda_huff_tree(Arvore* arv, uint32_t altura, uint8_t* bytes) {
   @file FILE* arquivo para escrita em binario
 */ 
 void write_huff_tree(Huffman* huff, FILE* file) {
-  uint32_t total_bytes = (huff->total_nodes * 2 * (huff->total_colors * 3 * 8)) / 8;
+  uint32_t total_bytes = (huff->total_nodes * (huff->total_colors * 3 * 8)) / 8;
   printf("len %d\n", total_bytes);
-  if (huff->total_nodes == 1) total_bytes = 4; // uma cor 3 bytes + 1 byte zerado 00
-  uint8_t* bytes = (uint8_t*)malloc(total_bytes * sizeof(uint8_t));
+  if (huff->total_nodes < 3) total_bytes = 4; // uma cor 3 bytes + 1 byte zerado 00
+  uint8_t* bytes = (uint8_t*)calloc(total_bytes * sizeof(uint8_t), sizeof(uint8_t));
   //pre_imprime_arv(huff->root);
-  encoda_huff_tree(huff->root, 0, bytes);
+  encoda_huff_tree(huff->root, bytes);
+
+  printf("bytes\n");
+  for (uint32_t i = 0; i < total_bytes; ++i) {
+    printf("%08b\n", bytes[i]);
+  }
 
   fwrite(bytes, sizeof(uint8_t), total_bytes, file);
 }
