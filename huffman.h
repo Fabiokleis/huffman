@@ -34,18 +34,10 @@ typedef struct huffman {
   Arvore* root;
 } Huffman;
 
-typedef struct pixel {
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
-} Pixel;
-
 /* Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width, uint32_t channels); */
 Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width);
 void write_huff_bytes(FILE* f, Huffman* huff);
 void read_huff_bytes(uint32_t if_size, FILE* i_file, FILE* o_file, Huffman* huff);
 void write_huff_tree(Huffman* huff, FILE* file);
-uint32_t pack_color(uint8_t r, uint8_t g, uint8_t b);
-Pixel unpack_color(uint32_t color_pack);
 
 #endif /* HUFFMAN_H */

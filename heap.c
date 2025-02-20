@@ -2,27 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Arvore* constroi_arv(uint32_t color, uint32_t freq, Arvore* e, Arvore* d) {
-  Arvore* no = (Arvore*)malloc(sizeof(Arvore));
-  no->color = color;
-  no->freq = freq;
-  no->esq = e;
-  no->dir = d;
-  return no;
-}
-
-bool verifica_arv_vazia (Arvore* a) {
-  return (a == NULL);
-}
-
-void arv_libera (Arvore* a) {
-  if (!verifica_arv_vazia(a)) {
-    arv_libera(a->esq);
-    arv_libera(a->dir);
-      free(a);
-  }
-}
-
 Heap* criar_heap(uint32_t capacity) {
   //printf("capacity: %d\n", capacity);
   Heap* heap = (Heap*)malloc(sizeof(Heap));

@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <math.h>
 #include <stdbool.h>
+#include "stack.h"
 
 /*
   problema escolher tamanho do hash bom o suficiente...
@@ -15,21 +16,6 @@
 #define EMPTY_CHAR '\0'
 #define FILE_CHUNK_SIZE 256
 #define MAX_BITS 8
-
-uint32_t pack_color(uint8_t r, uint8_t g, uint8_t b) {
-  return (r << 16) | (g << 8) | b;
-}
-
-Pixel unpack_color(uint32_t color_pack) {
-
-  Pixel pixel = {0};
-
-  pixel.r = (color_pack >> 16) & 0xFF;
-  pixel.g = (color_pack >> 8);
-  pixel.b = color_pack;
-
-  return pixel;
-}
 
 /*
   calcula a frequencia de cada cor da img
@@ -277,44 +263,26 @@ void read_huff_bytes(uint32_t if_size, FILE* i_file, FILE* o_file, Huffman* huff
   printf("huffman decoded %s\n", bits);
 }
 
-
-uint32_t conta_nodes(Arvore* arv, uint32_t altura) {
-  if (arv != NULL) {
-    if (arv->esq == NULL && arv->dir == NULL) printf("arv color %b\n", arv->color);
-    arv->altura = altura;
-    return conta_nodes(arv->esq, altura + 1) + conta_nodes(arv->dir, altura + 1) + 1;
-  } else return 0;
-}
-
-void pre_imprime_arv (Arvore *arv) {
-  if (arv != NULL) {
-    Pixel pixel = unpack_color(arv->color);
-    printf("altura %d color (%b, %b, %b)\n", arv->altura, pixel.r, pixel.g, pixel.b);
-    pre_imprime_arv(arv->esq);
-    pre_imprime_arv(arv->dir);
-  }
-}
-
 /*
   pega arvore de huffman e copia os bits em bytes
 
   @arv Arvore* struct arvore com as cores e altura
   @bytes uint8_t* bytes com os bits dos nos e cores
-
 */
 void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
-  Heap* heap = criar_heap(MAX_SYMBOLS);
-  push(heap, raiz);
+  Stack* stack = create_stack();
+  stack_push(stack, raiz);
 
   uint32_t cursor = 0;
   uint32_t bits_offset = 0;
   uint32_t total_bits = 0;
-  while (heap->size > 0) {
-    Arvore* arv = pop(heap);
+  while (!stack_is_empty(stack)) {
+    Arvore* arv = stack_pop(stack);
 
     if (bits_offset == 4) {
       bits_offset = 0;
       cursor++;
+      printf("cursor dentro %d\n", cursor);
     }
 
     if (arv->esq != NULL && arv->dir != NULL) {
@@ -353,6 +321,7 @@ void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
 	bytes[++cursor] |= (pixel.g & 0x03) << 6;
 	bytes[cursor] |= (pixel.b & 0xFC) >> 2;
 	bytes[++cursor] |= (pixel.b & 0x03) << 6;
+	printf("cursor %d\n", cursor);
 	bits_offset = 1;
       }
 
@@ -387,21 +356,22 @@ void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
 
       /* fit */
       if (bits_offset == 3) {
-	bytes[++cursor] |= pixel.r;
-	bytes[++cursor] |= pixel.g;
-	bytes[++cursor] |= pixel.b;
+	bytes[++cursor] = pixel.r;
+	bytes[++cursor] = pixel.g;
+	bytes[++cursor] = pixel.b;
 	bits_offset = 0;
       }
+      printf("cursor %d\n", cursor);
     }
     total_bits += bits_offset;
-    if (arv->esq != NULL) push(heap, arv->esq);
-    if (arv->dir != NULL) push(heap, arv->dir);
+    if (arv->esq != NULL) stack_push(stack, arv->esq);
+    if (arv->dir != NULL) stack_push(stack, arv->dir);
   }
 
-  printf("heap %d %d\n", cursor, total_bits * 2);
-  for (uint32_t i = 0; i < MAX_SYMBOLS; ++i) {
-    if (heap->vetor[i] != NULL) printf("%08b\n", heap->vetor[i]->color);
-  }
+  printf("stack %d %d\n", cursor, total_bits * 2);
+  /* for (uint32_t i = 0; i < stack->; ++i) { */
+  /*   if (heap->vetor[i] != NULL) printf("%08b\n", heap->vetor[i]->color); */
+  /* } */
 }
 
 /*
