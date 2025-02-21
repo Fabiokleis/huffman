@@ -51,12 +51,14 @@ Hash* color_freqs(Huffman* huff) {
 
   @heap Heap* heap dos nodes da arvore
 */
-void freq_sum(Heap* heap) {
+
+void freq_sum(uint32_t* total_nodes, Heap* heap) {
   while (heap->size > 1) {
     Arvore* arv1 = pop(heap);
     if (0 == arv1->freq) continue; /* ignore empty */
     Arvore* arv2 = pop(heap);
     Arvore* arv = constroi_arv((uint32_t)EMPTY_CHAR, arv1->freq + arv2->freq, arv1, arv2);
+    (*total_nodes) += 3;
     push(heap, arv);
   }
 }
@@ -393,9 +395,10 @@ void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
   @file FILE* arquivo para escrita em binario
 */ 
 void write_huff_tree(Huffman* huff, FILE* file) {
-  uint32_t total_bytes = (huff->total_nodes * (huff->total_colors * 3 * 8)) / 8;
-  printf("len %d\n", total_bytes);
-  if (huff->total_nodes < 3) total_bytes = 4; // uma cor 3 bytes + 1 byte zerado 00
+  uint32_t nodes_bytes = (uint32_t) ceil(huff->total_nodes * 2.f / 8.f);
+  printf("nodes bytes %d\n", nodes_bytes);
+  uint32_t total_bytes = nodes_bytes + (huff->total_colors * 3);
+  printf("total bytes %d\n", total_bytes);
   uint8_t* bytes = (uint8_t*)calloc(total_bytes * sizeof(uint8_t), sizeof(uint8_t));
   //pre_imprime_arv(huff->root);
   encoda_huff_tree(huff->root, bytes);
@@ -437,7 +440,7 @@ Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
 
   printf("total colors: %d\n", huff->total_colors);
 
-  freq_sum(huff->heap); /* monta arvore */
+  freq_sum(&huff->total_nodes, huff->heap); /* monta arvore */
   huff->lut = create_hash(MAX_SYMBOLS);
   huff->root = pop(huff->heap); /* ultimo item do heap minimo e a raiz da arvore */
   huff->total_nodes = conta_nodes(huff->root, 0);
