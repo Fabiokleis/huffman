@@ -399,6 +399,7 @@ void write_huff_tree(Huffman* huff, FILE* file) {
   printf("nodes bytes %d\n", nodes_bytes);
   uint32_t total_bytes = nodes_bytes + (huff->total_colors * 3);
   printf("total bytes %d\n", total_bytes);
+  huff->tree_size = total_bytes;
   uint8_t* bytes = (uint8_t*)calloc(total_bytes * sizeof(uint8_t), sizeof(uint8_t));
   //pre_imprime_arv(huff->root);
   encoda_huff_tree(huff->root, bytes);

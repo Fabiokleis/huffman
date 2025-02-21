@@ -54,6 +54,10 @@ int main(int argc, char** argv) {
     }
   }
 
+  /* # integrar
+    pegar float*** img do grid da imagem lida com a lib do professor
+    criar uint8_t*** out para cada grid img.
+  */
   k_means(img, out, HEIGHT, WIDTH, 5, 50);
 
   printf("----------------------------------\n");
@@ -63,6 +67,13 @@ int main(int argc, char** argv) {
       printf("(%3d, %3d, %3d)\n", out[y][x][0], out[y][x][1], out[y][x][2]);
     }
   }
+
+
+  /* # integrar
+    passar cada uint8_t*** out para funcao constroi_huff com as dimensoes altura e largura.
+    depois de feito o huffman a saida codificada estara no char* code do struct Huffman do
+    arquivo huffman.h.
+  */
   Huffman* huff = constroi_huff(&out, HEIGHT, WIDTH);
 
   printf("huffman code %s\n", huff->code);
@@ -73,6 +84,11 @@ int main(int argc, char** argv) {
    return 1;
   }
 
+
+  /* # integrar
+    pegar o Huffman* de retorno da funcao constroi_huff e
+    passar para funcao write_huff_bytes junto com o arquivo de saida.
+  */
   write_huff_bytes(f, huff);
 
   FILE* bin_arv = fopen(TREE_FILE, "wb");
@@ -80,10 +96,16 @@ int main(int argc, char** argv) {
     fprintf(stderr, "ERROR: failed to open %s: %s\n", TREE_FILE, strerror(errno));
     return 1;
   }
+
+  /* # integrar
+    passar o struct Huffman* como argumento para funcao
+    write_huff_tree que vai salvar a arvore codificada
+    no arquivo de saida.
+
+    #obs: verificar com o gustavo como ele vai saber o tamanho da arvore
+    dentro da struct huffman tem o uint32_t tree_size para indicar
+    o tamanho da arvore codificada em bytes.
+  */
   write_huff_tree(huff, bin_arv);
-
-  //fseek(f, 0, SEEK_SET);
-  //read_huff_bytes(huff->h4k_size, f, NULL, huff);
-
   return 0;
 }
