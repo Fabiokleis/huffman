@@ -404,6 +404,7 @@ Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
   huff->img = img;
   huff->height = height;
   huff->width = width;
+  printf("height %d width %d\n", height, width);
   Hash* freqs = color_freqs(huff);
   //hash_print(freqs, MAX_SYMBOLS);
 

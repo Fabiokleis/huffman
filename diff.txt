@@ -1,0 +1,62 @@
+diff --git a/Makefile b/Makefile
+index e16e7fa..fe33168 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,32 +1,44 @@
+ CC = gcc
+-CFLAGS = -Wall -Wextra -g -lm
++CFLAGS = -Wall -Wextra -g -std=c11
++OBJ = professor_lib.o pdi.o arvore.o stack.o kmeans.o heap.o hashmap.o huffman.o main.o
++TARGET = programa
+ 
+-all: huff
++all: huff $(TARGET)
+ .PHONY: all
+ 
+-arvore.o: arvore.c
++# Compila a biblioteca do professor
++professor_lib.o: professor_lib.c professor_lib.h pdi.h
++	$(CC) $(CFLAGS) -c professor_lib.c
++
++pdi.o: pdi.c pdi.h
++	$(CC) $(CFLAGS) -c pdi.c
++
++# Regras para Huffman
++arvore.o: arvore.c arvore.h
+ 	$(CC) $(CFLAGS) -c arvore.c
+ 
+-stack.o: arvore.o stack.c
++stack.o: stack.c stack.h arvore.o
+ 	$(CC) $(CFLAGS) -c stack.c
+ 
+-kmeans.o: kmeans.c
++kmeans.o: kmeans.c kmeans.h
+ 	$(CC) $(CFLAGS) -c kmeans.c
+ 
+-heap.o: heap.c
++heap.o: heap.c heap.h
+ 	$(CC) $(CFLAGS) -c heap.c
+ 
+-hashmap.o: hashmap.c
++hashmap.o: hashmap.c hashmap.h
+ 	$(CC) $(CFLAGS) -c hashmap.c	
+ 
+-huffman.o: stack.o heap.o hashmap.o huffman.c
++huffman.o: huffman.c huffman.h heap.o hashmap.o stack.o
+ 	$(CC) $(CFLAGS) -c huffman.c
+ 
+-main.o: huffman.o kmeans.o main.c
++main.o: professor_lib.o huffman.o kmeans.o main.c
+ 	$(CC) $(CFLAGS) -c main.c
+ 
+-huff: main.o
+-	$(CC) $(CFLAGS) -o huff heap.o hashmap.o huffman.o kmeans.o stack.o arvore.o main.o
++huff: $(OBJ)
++	$(CC) $(CFLAGS) -o huff $(OBJ) -lm
+ 
++# Limpeza dos arquivos gerados
+ clean:
+-	rm -f huff heap.o hashmap.o huffman.o kmeans.o stack.o arvore.o main.o *.h4k
++	rm -f $(OBJ) $(TARGET) huff *.h4k
++.PHONY: clean
+\ No newline at end of file
