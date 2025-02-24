@@ -40,6 +40,7 @@ void descompacta_grid(int altura, int largura, Leitor_de_bytes *arvore, Leitor_d
     while ((bit1 = ler_bit(byte_lido)) != 255)
 
     {
+        printf("bit1: %d\n", bit1);
         bit2 =  ler_bit(byte_lido);
         //criando filhos se tiver
         if(bit2 == 1)
@@ -68,7 +69,7 @@ void descompacta_grid(int altura, int largura, Leitor_de_bytes *arvore, Leitor_d
     fechar_Leitor_de_bytes(byte_lido);
 
     //debugando com print pq né
-    //mostra_arvore(raiz, 0);
+    mostra_arvore(raiz, 0);
 
     //arvore feita ======================================
     printf("Arvore lida e feita\n");
@@ -83,8 +84,10 @@ void descompacta_grid(int altura, int largura, Leitor_de_bytes *arvore, Leitor_d
     uint8_t saida[ALTURA][LARGURA][CANAIS];
     for (int y = 0 ; y < ALTURA ; y++)
     {
+        printf("y: %d\n", y);
         for (int x = 0 ; x < LARGURA ; x++)
         {
+            printf("x: %d\n", x);
             while (!(atual -> folha))
             {
                 //codigo de huffman até encontrar a cor

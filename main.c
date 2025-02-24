@@ -5,6 +5,7 @@
 #include "huffman.h"
 #include "kmeans.h"
 #include "professor_lib.h"
+#include"descompactador.h"
 
 #define CODE_FILE "code.h4k\0"
 #define TREE_FILE "tree.bin\0"
@@ -46,24 +47,6 @@ int main(int argc, char** argv) {
       printf("(%f, %f, %f)\n", img[y][x][0], img[y][x][1], img[y][x][2]);
     }
   }
-/*
-  float colors[3][COLORS] = {
-    {255, 20, 50, 100, 180, 240, 10, 45, 99, 182, 250, 20, 53, 102, 178, 243, 12, 39, 95, 185},
-    {129, 58, 98, 77, 159, 242, 13, 38, 66, 80, 25, 33, 20, 20, 245, 111, 29, 32, 95, 208},
-    {20, 86, 40, 109, 123, 149, 22, 18, 20, 90, 15, 130, 244, 140, 217, 223, 10, 38, 79, 20}
-  };
-  
-  printf("img float %dx%dx%d\n", HEIGHT, WIDTH, 3);
-  for (uint32_t y = 0; y < HEIGHT; ++y) {
-    for (uint32_t x = 0; x < WIDTH; ++x) {
-      img[y][x][0] = colors[rand() % 3][rand() % (COLORS-1)] / 255;
-      img[y][x][1] = colors[rand() % 3][rand() % (COLORS-1)] / 255;
-      img[y][x][2] = colors[rand() % 3][rand() % (COLORS-1)] / 255;
-      printf("(%f, %f, %f)\n", img[y][x][0], img[y][x][1], img[y][x][2]);
-    }
-  }
-
-  */
   
   uint8_t*** out = (uint8_t***)malloc(HEIGHT * sizeof(uint8_t**));
   for (uint32_t i = 0; i < HEIGHT; ++i) {

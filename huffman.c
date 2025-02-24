@@ -236,6 +236,7 @@ uint8_t write_huff_bytes(FILE* f, uint8_t offset, Huffman* huff) {
   return aux > 0 ? aux-1 : 0; // offset
 }
 
+
 bool cmp_bits(char* r_bits, uint32_t r_size, char* bits, uint32_t b_size) {
   uint32_t min_size = (r_size < b_size) ? r_size : b_size;
   for (uint32_t i = 0; i < min_size; ++i) {
