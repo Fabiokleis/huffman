@@ -75,8 +75,11 @@ void freq_sum(uint32_t* total_nodes, Heap* heap) {
 uint32_t count_lut_bits(uint32_t size, Hash* lut, Hash* freqs) {
   uint32_t count = 0;
   for (uint32_t i = 0; i < size; ++i) {
+    if(freqs[i].key == EMPTY) continue;
+    printf("freqs key %d freq %d\n", freqs[i].key, freqs[i].data.freq);
     int idx = hash_search(lut, size, freqs[i].key);
     if (EMPTY == idx) continue;
+    printf("lut data bits %s freq %d\n", lut[idx].data.bits, freqs[i].data.freq);
     if (lut[idx].data.bits != NULL) {
       count += strlen(lut[idx].data.bits) * freqs[i].data.freq;
     }
