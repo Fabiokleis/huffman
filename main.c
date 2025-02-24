@@ -88,10 +88,20 @@ int main(int argc, char** argv) {
   /* # integrar
     pegar o Huffman* de retorno da funcao constroi_huff e
     passar para funcao write_huff_bytes junto com o arquivo de saida.
-  */
-  write_huff_bytes(f, huff);
 
-  FILE* bin_arv = fopen(TREE_FILE, "wb");
+    passar a cada loop o offset retornado de cada write_huff_bytes
+  */
+  uint8_t offset = write_huff_bytes(f, 0, huff);
+  printf("bits offset %d\n", offset);
+
+
+  Huffman* huff2 = constroi_huff(&out, HEIGHT, WIDTH);
+  printf("huffman2 code %s\n", huff2->code);
+  uint8_t offset2 = write_huff_bytes(f, offset, huff);
+  printf("bits offset2 %d\n", offset2);
+  
+
+  FILE* bin_arv = fopen(TREE_FILE, "w+b");
   if (NULL == bin_arv) {
     fprintf(stderr, "ERROR: failed to open %s: %s\n", TREE_FILE, strerror(errno));
     return 1;
@@ -102,10 +112,11 @@ int main(int argc, char** argv) {
     write_huff_tree que vai salvar a arvore codificada
     no arquivo de saida.
 
-    #obs: verificar com o gustavo como ele vai saber o tamanho da arvore
-    dentro da struct huffman tem o uint32_t tree_size para indicar
-    o tamanho da arvore codificada em bytes.
+    passar a cada loop o offset retornado de cada write_huff_tree
   */
-  write_huff_tree(huff, bin_arv);
+  uint32_t offset_write = write_huff_tree(huff, 0, bin_arv);
+  printf("offset_write1 %d\n", offset_write);
+  uint32_t offset_write2 = write_huff_tree(huff, offset_write, bin_arv);
+  printf("offset_write2 %d\n", offset_write2);
   return 0;
 }

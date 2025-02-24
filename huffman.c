@@ -174,21 +174,40 @@ void encoda_huffman(Huffman* huff) {
   cores ja codificadas com huffman no arquivo de saida.
   
   @f FILE* arquivo de escrita binaria
+  @offset uint8_t total de bits a serem pulados
   @huff Huffman* struct huffman com a lut ja feita e o char* code
+
+  @return uint8_t offset de bits do ultimo byte
 */
-void write_huff_bytes(FILE* f, Huffman* huff) {
+uint8_t write_huff_bytes(FILE* f, uint8_t offset, Huffman* huff) {
   uint32_t size = floor((huff->bits_count-1) / 8) + ((huff->bits_count-1) % 8 == 0 ? 0 : 1);
   if (size == 0) size = 1; /* para char* com size menor que 8 */
   printf("input size %d bytes, output size %d bytes \n", huff->height * huff->width * 3, size);
   printf("%d/%d compressed %.2f%%\n", size, huff->height * huff->width * 3, 100.f - (((float)size / (huff->height * huff->width * 3)) * 100));
+
+  //if (offset > 0) size += 1;
   uint8_t* bytes = (uint8_t*) malloc(sizeof(uint8_t)*size); /* vetor com bytes a serem escritos */
   if (NULL == bytes) {
     fprintf(stderr, "ERROR: failed to alloc bits %s\n", strerror(errno));
   }
-
+  
   uint8_t byte = 0x0; /* byte que sera preenchido com cada bit */
-  uint8_t aux = 1; /* auxilio para shiffitar para esquerda os bits de byte */
+  uint8_t aux = 1; /* aux para shiffitar para esquerda os bits de byte */
   uint32_t idx = 0;
+  if (offset > 0) {
+    uint8_t last_byte[1];
+    uint32_t file_size = ftell(f);
+    fseek(f, file_size-1, SEEK_SET);
+    uint32_t b_read = fread(last_byte, sizeof(uint8_t), 1, f);
+    if (b_read == 0) {
+      fprintf(stderr, "ERROR: failed to read bytes %s\n", strerror(errno));
+      exit(1);
+    }
+    aux = offset+1;
+    byte = last_byte[0];
+    //printf("offset byte %08b\n", byte);
+  }
+  
   for (uint32_t i = 0; i < huff->bits_count-1; ++i) {
     if (huff->code[i] == '1') {
       byte |= 1 << (8  - aux);
@@ -205,7 +224,13 @@ void write_huff_bytes(FILE* f, Huffman* huff) {
   }
   bytes[idx] = byte; /* ultimo byte restante */
   huff->h4k_size = size;
+  if (offset > 0) {
+    uint32_t file_size = ftell(f);
+    fseek(f, file_size-1, SEEK_SET); // retorna ultimo byte
+  }
+
   fwrite(bytes, sizeof(uint8_t), size, f);
+  return aux > 0 ? aux-1 : 0; // offset
 }
 
 bool cmp_bits(char* r_bits, uint32_t r_size, char* bits, uint32_t b_size) {
@@ -271,12 +296,12 @@ void read_huff_bytes(uint32_t if_size, FILE* i_file, FILE* o_file, Huffman* huff
   @arv Arvore* struct arvore com as cores e altura
   @bytes uint8_t* bytes com os bits dos nos e cores
 */
-void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
+uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
   Stack* stack = create_stack();
   stack_push(stack, raiz);
 
   uint32_t cursor = 0;
-  uint32_t bits_offset = 0;
+  uint32_t bits_offset = offset;
   uint32_t total_bits = 0;
   while (!stack_is_empty(stack)) {
     Arvore* arv = stack_pop(stack);
@@ -319,18 +344,18 @@ void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
 	  0x03 3   00000011
 	*/
 	bytes[cursor] |= (pixel.r >> 2);
-	printf("R bytes: %d\n", bytes[cursor]);
+	//printf("R bytes: %d\n", bytes[cursor]);
 	bytes[++cursor] |= (pixel.r << 6);
-	printf("R bytes: %d\n", bytes[cursor]);
+	//printf("R bytes: %d\n", bytes[cursor]);
 	bytes[cursor] |= (pixel.g >> 2);
-	printf("G bytes: %d\n", bytes[cursor]);
+	//printf("G bytes: %d\n", bytes[cursor]);
 	bytes[++cursor] |= (pixel.g << 6);
-	printf("G bytes: %d\n", bytes[cursor]);
+	//printf("G bytes: %d\n", bytes[cursor]);
 	bytes[cursor] |= (pixel.b >> 2);
-	printf("B bytes: %d\n", bytes[cursor]);
+	//printf("B bytes: %d\n", bytes[cursor]);
 	bytes[++cursor] |= (pixel.b << 6);
 	bits_offset = 1;
-	printf("B bytes: %d\n", bytes[cursor]);
+	//printf("B bytes: %d\n", bytes[cursor]);
       } else if (bits_offset == 1) {
 	/*
 	  0x0F 15  00001111
@@ -338,15 +363,15 @@ void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
 	*/	
 	bytes[cursor] |= (pixel.r >> 4);// & 0x0F;
 	bytes[++cursor] |= (pixel.r << 4);// & 0xF0;
-	printf("R bytes: %08b\n", bytes[cursor]);
+	//printf("R bytes: %08b\n", bytes[cursor]);
 	bytes[cursor] |= (pixel.g >> 4);
-	printf("G bytes: %08b\n", bytes[cursor]);
+	//printf("G bytes: %08b\n", bytes[cursor]);
 	bytes[++cursor] |= (pixel.g << 4);
-	printf("G bytes: %08b\n", bytes[cursor]);
+	//printf("G bytes: %08b\n", bytes[cursor]);
 	bytes[cursor] |= (pixel.b >> 4);
-	printf("B bytes: %08b\n", bytes[cursor]);
+	//printf("B bytes: %08b\n", bytes[cursor]);
 	bytes[++cursor] |= (pixel.b << 4);
-	printf("B bytes: %08b\n", bytes[cursor]);
+	//printf("B bytes: %08b\n", bytes[cursor]);
 	bits_offset = 2;
       } else if (bits_offset == 2) {
 	/*
@@ -355,17 +380,17 @@ void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
 	  0xC0  192 11000000     
 	*/
 	bytes[cursor] |= (pixel.r >> 6);
-	printf("R bytes: %08b %08b %08b\n", pixel.r, pixel.r >> 6, bytes[cursor]);
+	//printf("R bytes: %08b %08b %08b\n", pixel.r, pixel.r >> 6, bytes[cursor]);
 	bytes[++cursor] |= (pixel.r << 2);
-	printf("R bytes: %08b %08b %08b\n", pixel.r, pixel.r << 2, bytes[cursor]);
+	//printf("R bytes: %08b %08b %08b\n", pixel.r, pixel.r << 2, bytes[cursor]);
 	bytes[cursor] |= (pixel.g >> 6);
-	printf("G bytes: %08b %08b %08b\n", pixel.g, pixel.g >> 6, bytes[cursor]);
+	//printf("G bytes: %08b %08b %08b\n", pixel.g, pixel.g >> 6, bytes[cursor]);
 	bytes[++cursor] |= (pixel.g << 2);
-	printf("G bytes: %08b %08b %08b\n", pixel.g, pixel.g << 2, bytes[cursor]);
+	//printf("G bytes: %08b %08b %08b\n", pixel.g, pixel.g << 2, bytes[cursor]);
 	bytes[cursor] |= (pixel.b >> 6);
-	printf("B bytes: %08b %08b %08b\n", pixel.b, pixel.b >> 6, bytes[cursor]);
+	//printf("B bytes: %08b %08b %08b\n", pixel.b, pixel.b >> 6, bytes[cursor]);
 	bytes[++cursor] |= (pixel.b << 2); 
-	printf("B bytes: %08b %08b %08b\n", pixel.b, pixel.b << 2, bytes[cursor]);
+	//printf("B bytes: %08b %08b %08b\n", pixel.b, pixel.b << 2, bytes[cursor]);
 	bits_offset = 3;
       } else if (bits_offset == 3) {
 	/* fit */
@@ -382,19 +407,22 @@ void encoda_huff_tree(Arvore* raiz, uint8_t* bytes) {
     if (arv->dir != NULL) stack_push(stack, arv->dir);
   }
 
-  printf("stack %d %d\n", cursor, total_bits * 2);
+  //printf("stack %d %d\n", cursor, total_bits * 2);
   /* for (uint32_t i = 0; i < stack->; ++i) { */
   /*   if (heap->vetor[i] != NULL) printf("%08b\n", heap->vetor[i]->color); */
   /* } */
+
+  return bits_offset;
 }
 
 /*
   codifica a arvore de huffman e escreve em um arquivo binario
 
   @raiz Arvore* arvore huffman com as cores
+  @offset uint8_t bits restantes do final da ultima escrita
   @file FILE* arquivo para escrita em binario
 */ 
-void write_huff_tree(Huffman* huff, FILE* file) {
+uint8_t write_huff_tree(Huffman* huff, uint8_t offset, FILE* file) {
   uint32_t nodes_bytes = (uint32_t) ceil(huff->total_nodes * 2.f / 8.f);
   printf("nodes bytes %d\n", nodes_bytes);
   uint32_t total_bytes = nodes_bytes + (huff->total_colors * 3);
@@ -402,14 +430,30 @@ void write_huff_tree(Huffman* huff, FILE* file) {
   huff->tree_size = total_bytes;
   uint8_t* bytes = (uint8_t*)calloc(total_bytes * sizeof(uint8_t), sizeof(uint8_t));
   //pre_imprime_arv(huff->root);
-  encoda_huff_tree(huff->root, bytes);
+
+  if (offset > 0) {
+      uint8_t last_byte[1];
+      uint32_t file_size = ftell(file);
+      fseek(file, file_size-1, SEEK_SET);
+      uint32_t b_read = fread(last_byte, sizeof(uint8_t), 1, file);
+      if (b_read == 0) {
+	fprintf(stderr, "ERROR: failed to read bytes %s\n", strerror(errno));
+	exit(1);
+      }
+      bytes[0] = last_byte[0];
+      fseek(file, file_size-1, SEEK_SET); // retorna ultimo byte
+      total_bytes++;
+  }
+  
+  uint8_t bits_offset = encoda_huff_tree(huff->root, offset, bytes);
 
   printf("bytes\n");
   for (uint32_t i = 0; i < total_bytes; ++i) {
     printf("%08b\n", bytes[i]);
   }
-
   fwrite(bytes, sizeof(uint8_t), total_bytes, file);
+
+  return bits_offset;
 }
 
 /*
