@@ -13,6 +13,80 @@
 #define WIDTH 4
 #define COLORS 20
 
+void print_grids(float ***image, int height, int width, int channels) {
+    int grid_size = 4;
+    for (int y = 0; y < height; y += grid_size) {
+        for (int x = 0; x < width; x += grid_size) {
+            printf("Grid at (%d, %d):\n", y, x);
+            
+            for (int gy = 0; gy < grid_size; gy++) {
+                for (int gx = 0; gx < grid_size; gx++) {
+                    int yy = y + gy;
+                    int xx = x + gx;
+                    if (yy < height && xx < width) {
+                        printf("(");
+                        for (int c = 0; c < channels; c++) {
+                            printf("%.2f%s", image[yy][xx][c], (c == channels - 1) ? "" : ", ");
+                        }
+                        printf(") ");
+                    } else {
+                        printf("(N/A) \n ");
+                    }
+                }
+                printf("\n");
+            }
+            printf("\n");
+        }
+    }
+}
+
+void process_grids(float ***image, int height, int width, int channels, FILE *f, FILE *bin_arv) {
+    int grid_size = 4;
+    uint8_t offset = 0;
+    uint32_t offset_write = 0;
+
+    for (int y = 0; y < height; y += grid_size) {
+        for (int x = 0; x < width; x += grid_size) {
+            printf("Grid at (%d, %d):\n", y, x);
+
+            // Cria um array para armazenar os valores do grid
+            float grid[grid_size][grid_size][channels];
+            for (int gy = 0; gy < grid_size; gy++) {
+                for (int gx = 0; gx < grid_size; gx++) {
+                    int yy = y + gy;
+                    int xx = x + gx;
+                    if (yy < height && xx < width) {
+                        for (int c = 0; c < channels; c++) {
+                            grid[gy][gx][c] = image[yy][xx][c];
+                        }
+                    } else {
+                        // Preenche com N/A se estiver fora dos limites da imagem
+                        for (int c = 0; c < channels; c++) {
+                            grid[gy][gx][c] = -1.0f; // Valor inválido para indicar N/A
+                        }
+                    }
+                }
+            }
+
+            // Gera a árvore de Huffman para o grid atual
+            Huffman* huff = constroi_huff(grid, grid_size, grid_size);
+            printf("Huffman code: %s\n", huff->code);
+
+            // Escreve os bytes codificados no arquivo de saída
+            offset = write_huff_bytes(f, offset, huff);
+            printf("bits offset: %d\n", offset);
+
+            // Escreve a árvore de Huffman no arquivo binário
+            offset_write = write_huff_tree(huff, offset_write, bin_arv);
+            printf("offset_write: %d\n", offset_write);
+
+            // Libera a memória alocada para a árvore de Huffman
+            free_huffman(huff);
+        }
+    }
+}
+
+
 int main(int argc, char** argv) {
   (void) argc;
   (void) argv;
@@ -26,27 +100,23 @@ int main(int argc, char** argv) {
   printf("largura: %d\n", largura);
 
   
-  float*** img = (float***)malloc(HEIGHT * sizeof(float**));
-  for (uint32_t i = 0; i < HEIGHT; ++i) {
-    img[i] = (float**)malloc(WIDTH * sizeof(float*));
+  float*** img = (float***)malloc(altura * sizeof(float**));
+  for (uint32_t i = 0; i < largura; ++i) {
+    img[i] = (float**)malloc(largura * sizeof(float*));
 
-    for (uint32_t j = 0; j < WIDTH; ++j) {
+    for (uint32_t j = 0; j < largura; ++j) {
       img[i][j] = (float*)malloc(3 * sizeof(float));
     }
   }
 
-  for(int y = 0; y < HEIGHT; y++) {
-    for(int x = 0; x < WIDTH; x++) {
+  for(int y = 0; y < altura; y++) {
+    for(int x = 0; x < largura; x++) {
       img[y][x][0] = teste[y][x][0];
       img[y][x][1] = teste[y][x][1];
       img[y][x][2] = teste[y][x][2];
     }
   }
-    for(int y = 0; y < HEIGHT; y++) {
-    for(int x = 0; x < WIDTH; x++) {
-      printf("(%f, %f, %f)\n", img[y][x][0], img[y][x][1], img[y][x][2]);
-    }
-  }
+  print_grids(img, altura, largura, 3);
   
   uint8_t*** out = (uint8_t***)malloc(HEIGHT * sizeof(uint8_t**));
   for (uint32_t i = 0; i < HEIGHT; ++i) {
