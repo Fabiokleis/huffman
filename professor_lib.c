@@ -12,7 +12,7 @@
 
 /*============================================================================*/
 
-#define INPUT_IMAGE "wind_waker.bmp"
+#define INPUT_IMAGE "bmp_24.bmp"
 
 // TODO: ajuste estes par�metros!
 #define NEGATIVO 0

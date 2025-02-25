@@ -33,7 +33,7 @@ void liberar_matriz_u_int(uint8_t ***teste, int altura, int largura) {
 }
 
 void print_grids(float ***image, int height, int width, int channels) {
-    int grid_size = 4;
+    int grid_size = 8;
     for (int y = 0; y < height; y += grid_size) {
         for (int x = 0; x < width; x += grid_size) {
             printf("Grid at (%d, %d):\n", y, x);
@@ -129,6 +129,20 @@ void process_grids(float ***img, int height, int width, int channels, FILE *f, F
 	    liberar_matriz(grid, grid_size, grid_size);
 
             // Libera a memória alocada para a árvore de Huffman
+	    
+	    if (huff->root != NULL)
+	      arv_libera(huff->root);
+
+	    
+	    if (huff->heap != NULL && huff->heap->vetor != NULL) {
+	      free(huff->heap->vetor);
+	      free(huff->heap);
+	    }
+
+	    if (huff->code != NULL) {
+	      free(huff->code);
+	    }
+
             free(huff);
         }
     }

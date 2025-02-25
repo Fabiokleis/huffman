@@ -140,8 +140,9 @@ void cria_huffman_lut(uint32_t size, Hash* lut, Arvore* raiz) {
     lut[idx].data.bits[1] = '\0';
     return;
   }
-  char bits[MAX_BITS];
+  char* bits = (char*) malloc(sizeof(char) * MAX_BITS);
   cria_huffman_code(size, raiz, bits, 0, lut);
+  free(bits);
 }
 
 /*
@@ -168,7 +169,7 @@ void encoda_huffman(Huffman* huff) {
       j += strlen(huff->lut[idx].data.bits); 
     }
   }
-  huff->code[huff->bits_count] = '\0';
+  huff->code[j] = '\0';
 }
 
 /*
@@ -234,11 +235,6 @@ uint8_t write_huff_bytes(FILE* f, uint8_t offset, Huffman* huff) {
   fwrite(bytes, sizeof(uint8_t), size, f);
 
   free(bytes);
-  if (huff->code != NULL) {
-    //printf("invalid pointer  %s?\n", huff->code);
-    free(huff->code);
-    //printf("invalid pointer2  ?\n");
-  }
 
   return aux > 0 ? aux-1 : 0; // offset
 }
@@ -355,7 +351,7 @@ uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
       }
       //printf("cursor %d\n", cursor);
     }
-    total_bits += bits_offset;
+    //total_bits += bits_offset;
     if (arv->esq != NULL) stack_push(stack, arv->esq);
     if (arv->dir != NULL) stack_push(stack, arv->dir);
   }
@@ -408,7 +404,6 @@ uint8_t write_huff_tree(Huffman* huff, uint8_t offset, FILE* file) {
   /*   printf("%08b\n", bytes[i]); */
   /* } */
   fwrite(bytes, sizeof(uint8_t), total_bytes, file);
-
   free(bytes);
   return bits_offset;
 }
@@ -455,18 +450,17 @@ Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
 
   huff->code = (char*)malloc(huff->bits_count * sizeof(char));
   encoda_huffman(huff);
-  free(freqs);
-  free(huff->heap->vetor);
-  free(huff->heap);
-  for (uint32_t i = 0; i < MAX_SYMBOLS; ++i) {
-    if (EMPTY != huff->lut[i].key) {
-      free(huff->lut[i].data.bits);
+  if (freqs != NULL)
+    free(freqs);
+  
+  if (huff->lut != NULL) {
+    for (uint32_t i = 0; i < MAX_SYMBOLS; ++i) {
+      if (EMPTY != huff->lut[i].key) {
+	free(huff->lut[i].data.bits);
+      }
     }
-  }
-  if (huff->lut != NULL)
     free(huff->lut);
-
-  arv_libera(huff->root);
+  }
 
   return huff;
 }
