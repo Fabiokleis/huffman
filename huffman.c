@@ -14,8 +14,7 @@
 
 #define MAX_SYMBOLS 256
 #define EMPTY_CHAR '\0'
-#define FILE_CHUNK_SIZE 256
-#define MAX_BITS 8
+#define MAX_BITS 256
 
 /*
   calcula a frequencia de cada cor da img
@@ -76,10 +75,10 @@ uint32_t count_lut_bits(uint32_t size, Hash* lut, Hash* freqs) {
   uint32_t count = 0;
   for (uint32_t i = 0; i < size; ++i) {
     if(freqs[i].key == EMPTY) continue;
-    printf("freqs key %d freq %d\n", freqs[i].key, freqs[i].data.freq);
+    //printf("freqs key %d freq %d\n", freqs[i].key, freqs[i].data.freq);
     int idx = hash_search(lut, size, freqs[i].key);
     if (EMPTY == idx) continue;
-    printf("lut data bits %s freq %d\n", lut[idx].data.bits, freqs[i].data.freq);
+    //printf("lut data bits %s freq %d\n", lut[idx].data.bits, freqs[i].data.freq);
     if (lut[idx].data.bits != NULL) {
       count += strlen(lut[idx].data.bits) * freqs[i].data.freq;
     }
@@ -109,8 +108,8 @@ void cria_huffman_code(uint32_t size, Arvore* arv, char* bits, uint32_t altura, 
     }
     lut[idx].type = BITS;
     lut[idx].data.bits = strdup(bits);
-    Pixel pixel = unpack_color((uint32_t)lut[idx].key);
-    printf("[%8s]: color (%3d, %3d, %3d) uint32_t (%b)\n", lut[idx].data.bits, pixel.r, pixel.g, pixel.b, (uint32_t)lut[idx].key);
+    //Pixel pixel = unpack_color((uint32_t)lut[idx].key);
+    //printf("[%8s]: color (%3d, %3d, %3d) uint32_t (%b)\n", lut[idx].data.bits, pixel.r, pixel.g, pixel.b, (uint32_t)lut[idx].key);
     return;
   }
   
@@ -130,7 +129,7 @@ void cria_huffman_code(uint32_t size, Arvore* arv, char* bits, uint32_t altura, 
   
 */
 void cria_huffman_lut(uint32_t size, Hash* lut, Arvore* raiz) {
-  printf("-----------------------------------lut------------------------------------\n");
+  //printf("-----------------------------------lut------------------------------------\n");
 
    /* in case of one single entry in lut */
   if (NULL == raiz->esq && NULL == raiz->dir) {
@@ -152,19 +151,19 @@ void cria_huffman_lut(uint32_t size, Hash* lut, Arvore* raiz) {
   @huff Huffman* struct huffman img e lut
 */
 void encoda_huffman(Huffman* huff) {
-  printf("---------------------------huffman-encoded--------------------------------\n");
+  //printf("---------------------------huffman-encoded--------------------------------\n");
   uint32_t j = 0;
   for (uint32_t y = 0; y < huff->height; ++y) {
     for (uint32_t x = 0; x < huff->width; ++x) {
       uint32_t color = pack_color((*huff->img)[y][x][0], (*huff->img)[y][x][1], (*huff->img)[y][x][2]);
-      Pixel pixel = unpack_color(color);
+      //Pixel pixel = unpack_color(color);
       int idx = hash_search(huff->lut, MAX_SYMBOLS, color);
       if (EMPTY == idx) {
 	printf("ERRO: color not found %b\n", color);
 	exit(1);
       }
 	  
-      printf("[%8s]: color (%3d, %3d, %3d) uint32_t (%b)\n", huff->lut[idx].data.bits, pixel.r, pixel.g, pixel.b, (uint32_t)huff->lut[idx].key);
+      //printf("[%8s]: color (%3d, %3d, %3d) uint32_t (%b)\n", huff->lut[idx].data.bits, pixel.r, pixel.g, pixel.b, (uint32_t)huff->lut[idx].key);
       memcpy(huff->code+j, huff->lut[idx].data.bits, strlen(huff->lut[idx].data.bits));
       j += strlen(huff->lut[idx].data.bits); 
     }
@@ -185,11 +184,11 @@ void encoda_huffman(Huffman* huff) {
 uint8_t write_huff_bytes(FILE* f, uint8_t offset, Huffman* huff) {
   uint32_t size = floor((huff->bits_count-1) / 8) + ((huff->bits_count-1) % 8 == 0 ? 0 : 1);
   if (size == 0) size = 1; /* para char* com size menor que 8 */
-  printf("input size %d bytes, output size %d bytes \n", huff->height * huff->width * 3, size);
-  printf("%d/%d compressed %.2f%%\n", size, huff->height * huff->width * 3, 100.f - (((float)size / (huff->height * huff->width * 3)) * 100));
+  //printf("input size %d bytes, output size %d bytes \n", huff->height * huff->width * 3, size);
+  //printf("%d/%d compressed %.2f%%\n", size, huff->height * huff->width * 3, 100.f - (((float)size / (huff->height * huff->width * 3)) * 100));
 
   //if (offset > 0) size += 1;
-  uint8_t* bytes = (uint8_t*) malloc(sizeof(uint8_t)*size); /* vetor com bytes a serem escritos */
+  uint8_t* bytes = (uint8_t*) malloc(size*sizeof(uint8_t)); /* vetor com bytes a serem escritos */
   if (NULL == bytes) {
     fprintf(stderr, "ERROR: failed to alloc bits %s\n", strerror(errno));
   }
@@ -233,65 +232,15 @@ uint8_t write_huff_bytes(FILE* f, uint8_t offset, Huffman* huff) {
   }
 
   fwrite(bytes, sizeof(uint8_t), size, f);
+
+  free(bytes);
+  if (huff->code != NULL) {
+    //printf("invalid pointer  %s?\n", huff->code);
+    free(huff->code);
+    //printf("invalid pointer2  ?\n");
+  }
+
   return aux > 0 ? aux-1 : 0; // offset
-}
-
-
-bool cmp_bits(char* r_bits, uint32_t r_size, char* bits, uint32_t b_size) {
-  uint32_t min_size = (r_size < b_size) ? r_size : b_size;
-  for (uint32_t i = 0; i < min_size; ++i) {
-    if (r_bits[i] != bits[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-void read_huff_bytes(uint32_t if_size, FILE* i_file, FILE* o_file, Huffman* huff) {
-  printf("---------------------------huffman-decoded--------------------------------\n");
-  (void) o_file;
-  (void) huff;
-  uint32_t s = if_size;
-  if (s < FILE_CHUNK_SIZE) s = 1;
-  else s = ceil(if_size / FILE_CHUNK_SIZE) + (if_size % FILE_CHUNK_SIZE == 0 ? 0 : 1);
-
-  uint8_t* chunk = (uint8_t*)malloc(sizeof(uint8_t)* FILE_CHUNK_SIZE);
-  if (NULL == chunk) {
-    fprintf(stderr, "ERROR: failed to alloc chunk %s\n", strerror(errno));
-  }
-
-  uint8_t* bits = (uint8_t*)malloc(sizeof(uint8_t) * s * FILE_CHUNK_SIZE);
-  if (NULL == bits) {
-    fprintf(stderr, "ERROR: failed to alloc bits %s\n", strerror(errno));
-  }
-  uint32_t idx = 0;
-  uint32_t bytes_read = 0;
-  for (uint32_t i = 0; i < s; ++i) {
-    bytes_read += fread(chunk, sizeof(uint8_t), FILE_CHUNK_SIZE, i_file);
-    printf("bytes_read %d\n", bytes_read);
-    for (uint32_t j = 0; j < bytes_read; ++j) {
-      uint8_t and = 0xff;
-      for (uint8_t aux = 1; aux <= 8; ++aux) {
-	uint8_t bit = (chunk[j] & and) >> (8 - aux);
-	//printf("chunk %b bit %b aux %d\n", chunk[j], bit, aux);
-	bits[idx] = bit == 0x1 ? '1' : '0';
-	idx++;
-	and >>= 1;
-
-
-	/* TODO:
-	   traduzir a cada iteracao o bits no huff->lut
-	   e escrever em o_file
-	*/
-	
-	
-      }
-    }
-    //memset(chunk, 0, FILE_CHUNK_SIZE);
-  }
-
-  bits[bytes_read*8] = '\0';
-  printf("huffman decoded %s\n", bits);
 }
 
 /*
@@ -313,34 +262,34 @@ uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
     if (bits_offset == 4) {
       bits_offset = 0;
       cursor++;
-      printf("cursor dentro %d\n", cursor);
+      //printf("cursor dentro %d\n", cursor);
     }
 
     if (arv->esq != NULL && arv->dir != NULL) {
       bytes[cursor] |= 0x3 << (6 - (2 * bits_offset));
       bits_offset += 1;
-      printf("no 11\n");
+      //printf("no 11\n");
     }
 
     if (arv->esq != NULL && arv->dir == NULL) {
       bytes[cursor] |= 0x2 << (6 - (2 * bits_offset));
       bits_offset += 1;
-      printf("no 10\n");
+      //printf("no 10\n");
     }
     
     if (arv->esq == NULL && arv->dir != NULL) {
       bytes[cursor] |= 0x1 << (6 - (2 * bits_offset));
       bits_offset += 1;
-      printf("no 01\n");
+      //printf("no 01\n");
     }
     
     if (arv->esq == NULL && arv->dir == NULL) {
-      printf("no 00\n");
+      // printf("no 00\n");
       //bytes[cursor] |= 0x0 << (6 - (2 * bits_offset));
-      printf("offset %d\n", bits_offset);
+      //printf("offset %d\n", bits_offset);
 
       Pixel pixel = unpack_color(arv->color);
-      printf("cursor %d color (%08b, %08b, %08b)\n", cursor, pixel.r, pixel.g, pixel.b);
+      //printf("cursor %d color (%08b, %08b, %08b)\n", cursor, pixel.r, pixel.g, pixel.b);
 
       if (bits_offset == 0) {
 	/*
@@ -404,7 +353,7 @@ uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
 	cursor++; // next byte
 	bits_offset = 0;
       }
-      printf("cursor %d\n", cursor);
+      //printf("cursor %d\n", cursor);
     }
     total_bits += bits_offset;
     if (arv->esq != NULL) stack_push(stack, arv->esq);
@@ -431,11 +380,11 @@ uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
 */ 
 uint8_t write_huff_tree(Huffman* huff, uint8_t offset, FILE* file) {
   uint32_t nodes_bytes = (uint32_t) ceil(huff->total_nodes * 2.f / 8.f);
-  printf("nodes bytes %d\n", nodes_bytes);
+  //printf("nodes bytes %d\n", nodes_bytes);
   uint32_t total_bytes = nodes_bytes + (huff->total_colors * 3);
-  printf("total bytes %d\n", total_bytes);
+  //printf("total bytes %d\n", total_bytes);
   huff->tree_size = total_bytes;
-  uint8_t* bytes = (uint8_t*)calloc(total_bytes * sizeof(uint8_t), sizeof(uint8_t));
+  uint8_t* bytes = (uint8_t*)malloc(total_bytes * sizeof(uint8_t));
   //pre_imprime_arv(huff->root);
 
   if (offset > 0) {
@@ -454,12 +403,13 @@ uint8_t write_huff_tree(Huffman* huff, uint8_t offset, FILE* file) {
   
   uint8_t bits_offset = encoda_huff_tree(huff->root, offset, bytes);
 
-  printf("bytes\n");
-  for (uint32_t i = 0; i < total_bytes; ++i) {
-    printf("%08b\n", bytes[i]);
-  }
+  /* printf("bytes\n"); */
+  /* for (uint32_t i = 0; i < total_bytes; ++i) { */
+  /*   printf("%08b\n", bytes[i]); */
+  /* } */
   fwrite(bytes, sizeof(uint8_t), total_bytes, file);
 
+  free(bytes);
   return bits_offset;
 }
 
@@ -490,25 +440,32 @@ Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
     }
   }
 
-  printf("total colors: %d\n", huff->total_colors);
+  //printf("total colors: %d\n", huff->total_colors);
 
   freq_sum(&huff->total_nodes, huff->heap); /* monta arvore */
   huff->lut = create_hash(MAX_SYMBOLS);
   huff->root = pop(huff->heap); /* ultimo item do heap minimo e a raiz da arvore */
   huff->total_nodes = conta_nodes(huff->root, 0);
   
-  printf("total nodes: %d\n", huff->total_nodes);
+  //printf("total nodes: %d\n", huff->total_nodes);
   cria_huffman_lut(MAX_SYMBOLS, huff->lut, huff->root);
   //hash_print(huff->lut, MAX_SYMBOLS);
   huff->bits_count = count_lut_bits(MAX_SYMBOLS, huff->lut, freqs) + 1;
-  printf("huffman encoded bits len %d \n", huff->bits_count-1);
+  //printf("huffman encoded bits len %d \n", huff->bits_count-1);
 
   huff->code = (char*)malloc(huff->bits_count * sizeof(char));
   encoda_huffman(huff);
   free(freqs);
   free(huff->heap->vetor);
   free(huff->heap);
-  free(huff->lut);
+  for (uint32_t i = 0; i < MAX_SYMBOLS; ++i) {
+    if (EMPTY != huff->lut[i].key) {
+      free(huff->lut[i].data.bits);
+    }
+  }
+  if (huff->lut != NULL)
+    free(huff->lut);
+
   arv_libera(huff->root);
 
   return huff;

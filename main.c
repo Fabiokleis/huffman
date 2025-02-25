@@ -66,7 +66,7 @@ void process_grids(float ***img, int height, int width, int channels, FILE *f, F
 
     for (int y = 0; y < height; y += grid_size) {
         for (int x = 0; x < width; x += grid_size) {
-            printf("Grid at (%d, %d):\n", y, x);
+	  //printf("Grid at (%d, %d):\n", y, x);
 
             float*** grid = (float***)malloc(grid_size * sizeof(float**));
             for(int i = 0; i < grid_size; i++) {
@@ -102,7 +102,7 @@ void process_grids(float ***img, int height, int width, int channels, FILE *f, F
             
             // Aplica o k-means no grid atual
             k_means(grid, out, grid_size, grid_size, 5, 50); // 5 clusters, 50 iterações
-            printf("passando pelo out:\n");
+            //printf("passando pelo out:\n");
            /* for (int gy = 0; gy < grid_size; gy++) {
                 for (int gx = 0; gx < grid_size; gx++) {
                     printf("(");
@@ -116,16 +116,17 @@ void process_grids(float ***img, int height, int width, int channels, FILE *f, F
 
             // Gera a árvore de Huffman para o grid processado
             Huffman* huff = constroi_huff(&out, grid_size, grid_size);
-            printf("Huffman code: %s\n", huff->code);
+            //printf("Huffman code: %s\n", huff->code);
 
             // Escreve os bytes codificados no arquivo de saída
             offset = write_huff_bytes(f, offset, huff);
-            printf("bits offset: %d\n", offset);
+            //printf("bits offset: %d\n", offset);
 
             // Escreve a árvore de Huffman no arquivo binário
             offset_write = write_huff_tree(huff, offset_write, bin_arv);
-            printf("offset_write: %d\n", offset_write);
+            //printf("offset_write: %d\n", offset_write);
             liberar_matriz_u_int(out, grid_size, grid_size);
+	    liberar_matriz(grid, grid_size, grid_size);
 
             // Libera a memória alocada para a árvore de Huffman
             free(huff);
