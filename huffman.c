@@ -415,6 +415,9 @@ uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
   /* for (uint32_t i = 0; i < stack->; ++i) { */
   /*   if (heap->vetor[i] != NULL) printf("%08b\n", heap->vetor[i]->color); */
   /* } */
+  while(stack_pop(stack) != NULL) {
+    // printf("stack %d %d\n", cursor, total_bits * 2);
+  }
 
   return bits_offset;
 }
@@ -502,8 +505,11 @@ Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
 
   huff->code = (char*)malloc(huff->bits_count * sizeof(char));
   encoda_huffman(huff);
-
-  
+  free(freqs);
+  free(huff->heap->vetor);
+  free(huff->heap);
+  free(huff->lut);
+  arv_libera(huff->root);
 
   return huff;
 }
