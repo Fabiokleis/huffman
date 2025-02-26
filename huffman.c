@@ -77,7 +77,7 @@ uint32_t count_lut_bits(uint32_t size, Hash* lut, Hash* freqs) {
     if(freqs[i].key == EMPTY) continue;
     //printf("freqs key %d freq %d\n", freqs[i].key, freqs[i].data.freq);
     int idx = hash_search(lut, size, freqs[i].key);
-    if (EMPTY == idx) continue;
+    if (EMPTY == idx) exit(1);
     //printf("lut data bits %s freq %d\n", lut[idx].data.bits, freqs[i].data.freq);
     if (lut[idx].data.bits != NULL) {
       count += strlen(lut[idx].data.bits) * freqs[i].data.freq;
@@ -169,7 +169,7 @@ void encoda_huffman(Huffman* huff) {
       j += strlen(huff->lut[idx].data.bits); 
     }
   }
-  huff->code[j] = '\0';
+  huff->code[huff->bits_count-1] = '\0';
 }
 
 /*
@@ -251,7 +251,7 @@ uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
 
   uint32_t cursor = 0;
   uint32_t bits_offset = offset;
-  uint32_t total_bits = 0;
+
   while (!stack_is_empty(stack)) {
     Arvore* arv = stack_pop(stack);
 
@@ -351,7 +351,7 @@ uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
       }
       //printf("cursor %d\n", cursor);
     }
-    //total_bits += bits_offset;
+
     if (arv->esq != NULL) stack_push(stack, arv->esq);
     if (arv->dir != NULL) stack_push(stack, arv->dir);
   }
@@ -464,32 +464,3 @@ Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
 
   return huff;
 }
-
-/*
-Huffman* constroi_huff(char* bytes) {
-  Huffman* huff = (Huffman*) malloc(sizeof(Huffman));
-  huff->bytes = bytes;
-  huff->bytes_count = strlen(bytes);
-  huff->lut_size = 0;
-  Hash *freqs = bytes_freqs(huff->bytes, &huff->lut_size);
-  printf("lut size: %d\n", huff->lut_size);
-  //hash_print(freqs, (uint32_t)strlen(bytes));
-
-  
-  freq_sum(huff->heap);
-  //printf("heap size: %d\n", huff->heap->size);
-
-  huff->lut = create_hash(huff->lut_size);
-  huff->root = pop(huff->heap);
-  //printf("root freq: %d\n", root->freq);
-  cria_huffman_lut(huff->lut_size, huff->lut, huff->root);
-  huff->bits_count = count_lut_bits(MAX_SYMBOLS, huff->lut, freqs) + 1;
-
-  //printf("bit count: %d\n", bit_count);
-  huff->code = (char*)malloc(sizeof(char)*huff->bits_count);
-  encoda_huffman(huff->lut_size, huff->lut, huff->code, huff->bytes);
-  huff->code[huff->bits_count] = '\0';
-  
-  return huff;
-}
-*/

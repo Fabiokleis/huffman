@@ -4,14 +4,11 @@
 #include <errno.h>
 #include "huffman.h"
 #include "kmeans.h"
-#include "professor_lib.h"
+#include "pdi.h"
 #include"descompactador.h"
 
 #define CODE_FILE "code.h4k\0"
 #define TREE_FILE "tree.bin\0"
-#define HEIGHT 4
-#define WIDTH 4
-#define COLORS 20
 
 void liberar_matriz(float ***teste, int altura, int largura) {
     for (int i = 0; i < altura; i++) {
@@ -57,6 +54,38 @@ void print_grids(float ***image, int height, int width, int channels) {
             printf("\n");
         }
     }
+}
+
+Imagem* get_imagem(char* input, int canais) {
+    Imagem* img = abreImagem(input, canais);
+    if (!img) {
+        printf("Erro abrindo a imagem.\n");
+        exit(1);
+    }
+    float*** new_img = malloc(img->altura * sizeof(float**));
+    for (int y = 0; y < img->altura; y++) {
+        new_img[y] = malloc(img->largura * sizeof(float*));
+        for (int x = 0; x < img->largura; x++) {
+            new_img[y][x] = malloc(img->n_canais * sizeof(float));
+        }
+    }
+    for (int y = 0; y < img->altura; y++) {
+        for (int x = 0; x < img->largura; x++) {
+            for (int c = 0; c < img->n_canais; c++) {
+                new_img[y][x][c] = img->dados[c][y][x];
+            }
+        }
+    }
+    for (int c = 0; c < img->n_canais; c++) {
+        for (int y = 0; y < img->altura; y++) {
+            free(img->dados[c][y]);
+        }
+        free(img->dados[c]);
+    }
+    free(img->dados);
+    img->dados = new_img;
+
+    return img;
 }
 
 void process_grids(float ***img, int height, int width, int channels, FILE *f, FILE *bin_arv) {
@@ -153,7 +182,7 @@ int main(int argc, char** argv) {
   (void) argc;
   (void) argv;
   
-  Imagem * img_strc = get_imagem(3);
+  Imagem * img_strc = get_imagem("bmp_24.bmp", 3);
   printf("Abriu a imagem \n");
   int altura = img_strc->altura;
   int largura = img_strc->largura;
@@ -172,78 +201,10 @@ int main(int argc, char** argv) {
     return 1;
   }
   process_grids(img, altura, largura, 3, f, bin_arv);
+  printf("escrito arquivo %s e %s\n", CODE_FILE, TREE_FILE);
 
-//  liberar_matriz(img, altura, largura);
-  // print_grids(img, altura, largura, 3);
-  
-  /*uint8_t*** out = (uint8_t***)malloc(HEIGHT * sizeof(uint8_t**));
-  for (uint32_t i = 0; i < HEIGHT; ++i) {
-    out[i] = (uint8_t**)malloc(WIDTH * sizeof(uint8_t*));
+  fclose(f);
+  fclose(bin_arv);
 
-    for (uint32_t j = 0; j < WIDTH; ++j) {
-      out[i][j] = (uint8_t*)malloc(3 * sizeof(uint8_t));
-    }
-  }
-
-  k_means(img, out, HEIGHT, WIDTH, 5, 50);
-
-  printf("----------------------------------\n");
-  printf("img uint8_t %dx%dx%d\n", HEIGHT, WIDTH, 3);
-  for (uint32_t y = 0; y < HEIGHT; ++y) {
-    for (uint32_t x = 0; x < WIDTH; ++x) {
-      printf("(%3d, %3d, %3d)\n", out[y][x][0], out[y][x][1], out[y][x][2]);
-    }
-  }
-  Huffman* huff = constroi_huff(&out, HEIGHT, WIDTH);
-
-  printf("huffman code %s\n", huff->code);
-
-  FILE* f = fopen(CODE_FILE, "w+b");
-  if (NULL == f) {
-   fprintf(stderr, "ERROR: failed to open %s: %s\n", CODE_FILE, strerror(errno));
-   return 1;
-  }
-  FILE* bin_arv = fopen(TREE_FILE, "w+b");
-  if (NULL == bin_arv) {
-    fprintf(stderr, "ERROR: failed to open %s: %s\n", TREE_FILE, strerror(errno));
-    return 1;
-  }
-  process_grids(img, altura, largura, 3, f, bin_arv);
-
-
-  /* # integrar
-    pegar o Huffman* de retorno da funcao constroi_huff e
-    passar para funcao write_huff_bytes junto com o arquivo de saida.
-
-    passar a cada loop o offset retornado de cada write_huff_bytes
-  */
-  /*uint8_t offset = write_huff_bytes(f, 0, huff);
-  printf("bits offset %d\n", offset);
-
-
-  Huffman* huff2 = constroi_huff(&out, HEIGHT, WIDTH);
-  printf("huffman2 code %s\n", huff2->code);
-  uint8_t offset2 = write_huff_bytes(f, offset, huff);
-  printf("bits offset2 %d\n", offset2);
-  
-
-  FILE* bin_arv = fopen(TREE_FILE, "w+b");
-  if (NULL == bin_arv) {
-    fprintf(stderr, "ERROR: failed to open %s: %s\n", TREE_FILE, strerror(errno));
-    return 1;
-  }
-
-  /* # integrar
-    passar o struct Huffman* como argumento para funcao
-    write_huff_tree que vai salvar a arvore codificada
-    no arquivo de saida.
-
-    passar a cada loop o offset retornado de cada write_huff_tree
-  */
- /* uint32_t offset_write = write_huff_tree(huff, 0, bin_arv);
-  printf("offset_write1 %d\n", offset_write);
-  uint32_t offset_write2 = write_huff_tree(huff, offset_write, bin_arv);
-  printf("offset_write2 %d\n", offset_write2);
-  */
   return 0;
 }
