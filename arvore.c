@@ -32,7 +32,7 @@ Pixel unpack_color(uint32_t color_pack) {
 
 uint32_t conta_nodes(Arvore* arv, uint32_t altura) {
   if (arv != NULL) {
-    if (arv->esq == NULL && arv->dir == NULL) printf("arv color %b\n", arv->color);
+    //if (arv->esq == NULL && arv->dir == NULL) printf("arv color %b\n", arv->color);
     arv->altura = altura;
     return conta_nodes(arv->esq, altura + 1) + conta_nodes(arv->dir, altura + 1) + 1;
   } else return 0;
