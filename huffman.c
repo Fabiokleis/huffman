@@ -246,6 +246,7 @@ uint8_t write_huff_bytes(FILE* f, uint8_t offset, Huffman* huff) {
 */
 uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
   Stack* stack = create_stack();
+  stack_push(stack, raiz);
 
   uint32_t cursor = 0;
   uint32_t bits_offset = offset;
