@@ -291,7 +291,7 @@ OffsetAndCursor encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
       para fitar os 24 bits em sequencia.
     */
     if (arv->esq == NULL && arv->dir == NULL) {
-      // printf("no 00\n");
+      //printf("no 00\n");
       //bytes[cursor] |= 0x0 << (6 - (2 * bits_offset));
       //printf("offset %d\n", bits_offset);
 
@@ -368,6 +368,8 @@ OffsetAndCursor encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
     // printf("stack %d %d\n", cursor, total_bits * 2);
   }
 
+  if (bits_offset == 0) cursor--;
+  
   return (OffsetAndCursor){ .offset = bits_offset, .cursor = cursor };
 }
 
@@ -398,16 +400,16 @@ uint8_t write_huff_tree(Huffman* huff, uint8_t offset, FILE* file) {
       }
       bytes[0] = last_byte[0];
       fseek(file, file_size-1, SEEK_SET); // retorna ultimo byte
-      total_bytes++;
   }
   OffsetAndCursor off_cur = encoda_huff_tree(huff->root, offset, bytes);
   //bytes = realloc(bytes, off_cur.cursor);
   /* printf("bytes\n"); */
-  /* for (uint32_t i = 0; i < total_bytes; ++i) { */
+  /* for (uint32_t i = 0; i < off_cur.cursor+1; ++i) { */
   /*   printf("%08b\n", bytes[i]); */
   /* } */
-  fwrite(bytes, sizeof(uint8_t), off_cur.cursor, file);
+  fwrite(bytes, sizeof(uint8_t), off_cur.cursor+1, file);
   free(bytes);
+  //getchar();
   return off_cur.offset;
 }
 
