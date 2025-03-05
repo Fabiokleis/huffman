@@ -50,13 +50,12 @@ Hash* color_freqs(Huffman* huff) {
 
   @heap Heap* heap dos nodes da arvore
 */
-void freq_sum(uint32_t* total_nodes, Heap* heap) {
+void freq_sum(Heap* heap) {
   while (heap->size > 1) {
     Arvore* arv1 = pop(heap);
-    if (0 == arv1->freq) continue; /* ignore empty */
+    //if (0 == arv1->freq) continue; /* ignore empty */
     Arvore* arv2 = pop(heap);
     Arvore* arv = constroi_arv((uint32_t)EMPTY_CHAR, arv1->freq + arv2->freq, arv1, arv2);
-    (*total_nodes) += 3;
     push(heap, arv);
   }
 }
@@ -238,13 +237,18 @@ uint8_t write_huff_bytes(FILE* f, uint8_t offset, Huffman* huff) {
   return aux > 0 ? aux-1 : 0; // offset
 }
 
+typedef struct offset_and_cursor {
+  uint8_t offset;
+  uint32_t cursor;
+} OffsetAndCursor;
+
 /*
   pega arvore de huffman e copia os bits em bytes
 
   @arv Arvore* struct arvore com as cores e altura
   @bytes uint8_t* bytes com os bits dos nos e cores
 */
-uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
+OffsetAndCursor encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
   Stack* stack = create_stack();
   stack_push(stack, raiz);
 
@@ -364,7 +368,7 @@ uint8_t encoda_huff_tree(Arvore* raiz, uint8_t offset, uint8_t* bytes) {
     // printf("stack %d %d\n", cursor, total_bits * 2);
   }
 
-  return bits_offset;
+  return (OffsetAndCursor){ .offset = bits_offset, .cursor = cursor };
 }
 
 /*
@@ -380,7 +384,7 @@ uint8_t write_huff_tree(Huffman* huff, uint8_t offset, FILE* file) {
   uint32_t total_bytes = nodes_bytes + (huff->total_colors * 3);
   //printf("total bytes %d\n", total_bytes);
   huff->tree_size = total_bytes;
-  uint8_t* bytes = (uint8_t*)malloc(total_bytes * sizeof(uint8_t));
+  uint8_t* bytes = (uint8_t*)calloc(total_bytes, sizeof(uint8_t));
   //pre_imprime_arv(huff->root);
 
   if (offset > 0) {
@@ -396,15 +400,15 @@ uint8_t write_huff_tree(Huffman* huff, uint8_t offset, FILE* file) {
       fseek(file, file_size-1, SEEK_SET); // retorna ultimo byte
       total_bytes++;
   }
-  uint8_t bits_offset = encoda_huff_tree(huff->root, offset, bytes);
-
+  OffsetAndCursor off_cur = encoda_huff_tree(huff->root, offset, bytes);
+  //bytes = realloc(bytes, off_cur.cursor);
   /* printf("bytes\n"); */
   /* for (uint32_t i = 0; i < total_bytes; ++i) { */
   /*   printf("%08b\n", bytes[i]); */
   /* } */
-  fwrite(bytes, sizeof(uint8_t), total_bytes, file);
+  fwrite(bytes, sizeof(uint8_t), off_cur.cursor, file);
   free(bytes);
-  return bits_offset;
+  return off_cur.offset;
 }
 
 /*
@@ -436,10 +440,10 @@ Huffman* constroi_huff(uint8_t**** img, uint32_t height, uint32_t width) {
 
   //printf("total colors: %d\n", huff->total_colors);
 
-  freq_sum(&huff->total_nodes, huff->heap); /* monta arvore */
+  freq_sum(huff->heap); /* monta arvore */
   huff->lut = create_hash(MAX_SYMBOLS);
   huff->root = pop(huff->heap); /* ultimo item do heap minimo e a raiz da arvore */
-  //huff->total_nodes = conta_nodes(huff->root, 0);
+  huff->total_nodes = conta_nodes(huff->root, 0);
   
   //printf("total nodes: %d\n", huff->total_nodes);
   cria_huffman_lut(MAX_SYMBOLS, huff->lut, huff->root);
