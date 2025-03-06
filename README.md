@@ -4,7 +4,7 @@ implementacao da arvore de huffman.
 ## makefile
 
 ### build
-gera o arquivo binario huff:
+gera o arquivo binario `huff` e `descompactador`:
 ```shell
 make
 ```
