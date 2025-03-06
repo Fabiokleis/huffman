@@ -16,12 +16,13 @@ make clean
 ```
 
 ### run
+compacta um arquivo .bmp gerando 2 arquivos de saida, `code.h4k` e `tree.bin`:
 ```shell
 ./huff
 ```
-para checar o arquivo gerado `code.h4k`:
+descompacta decodificando os arquivos `tree.bin` e `code.h4k`, e escreve um arquivo `resultado.bmp`:
 ```shell
-xxd -b code.h4k
+./descompactador
 ```
 
 
