@@ -1,6 +1,8 @@
 huff
+descompactador
 *.o
 *.h4k
 *.bin
 *.kh4
 *.ch4
+

@@ -17,6 +17,8 @@ typedef struct Arvore{
 //inicialliza
 Arvore* aloca_arvore();
 
+void desaloca_arvore(Arvore* raiz);
+
 //le 8 bits e coloca em uma arvore
 void le_cor(Arvore* atual, Leitor_de_bytes *byte_lido);
 

@@ -13,6 +13,16 @@ Arvore* aloca_arvore()
     arv -> folha = 0;
     return arv;
 }
+
+void desaloca_arvore(Arvore* raiz)
+{
+    if (raiz -> esq)
+        desaloca_arvore(raiz -> esq);
+    if (raiz -> dir)
+        desaloca_arvore(raiz -> dir);
+    free(raiz);
+}
+
 //le 24 bits como um valor RGB e coloca em atual
 void le_cor(Arvore* atual, Leitor_de_bytes *byte_lido)
 {

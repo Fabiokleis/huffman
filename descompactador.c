@@ -2,208 +2,184 @@
 #include "leitor_bit.h"
 #include "Arvore.h"
 #include "pilha.h"
+#include "imagem.h"
+#include <stdlib.h>
 
 ///realmente o descompactador -----------------
-#define ARVORE "arvore.kh4"
-#define CODIGO "codigo.kh4"
-#define ALTURA 4
-#define LARGURA 4
+#define ARVORE "tree.bin"
+#define CODIGO "code.h4k"
+#define SAIDA "resultado.bmp"
+#define ALTURA_IMAGEM 720
+#define LARGURA_IMAGEM 1280
+#define TAM_GRID 4
 #define CANAIS 3
-#define TAM_PILHA 100
+#define DEBUG 0
 
-
-void mostra_saida(uint8_t img[ALTURA][LARGURA][CANAIS])
+void mostra_saida(uint8_t*** img)
 {
-    for (int y = 0 ; y < ALTURA ; y++)
+    for (int y = 0 ; y < ALTURA_IMAGEM ; y++)
     {
         printf("\n");
-        for (int x = 0 ; x < LARGURA ; x++)
+        for (int x = 0 ; x < LARGURA_IMAGEM ; x++)
             printf("(%d , %d , %d)", img[y][x][0], img[y][x][1], img[y][x][2]);
     }
 }
 
-void descompacta_grid(int altura, int largura, Leitor_de_bytes *arvore, Leitor_de_bytes *codigo, Arvore* root)
+int descompacta_grid(int altura, int largura, char *tree, int *at_tree, int *at_huff, char *huff, float*** saida, int x_ini_saida, int y_ini_saida)
 {
+
     //abrindo o arquivo
-    printf("Chamou descompacta_grid\n");
-    //abrindo o arquivo
-    Leitor_de_bytes *byte_lido = arvore;
-    if (!byte_lido)
+    Leitor_de_bytes* arvore = criar_Leitor_de_bytes(tree, *at_tree);
+    if (!arvore)
         return 1;
 
-    int bit1, bit2;
+    uint8_t bit1, bit2; //pra poder receber -1
     Arvore* raiz = aloca_arvore();
     Arvore* atual = raiz;
-    Pilha* pilha_de_filhos = inicializa_pilha(TAM_PILHA);
+    Pilha* pilha_de_filhos = inicializa_pilha(100); //tamanho 100 empirico pra pilha
 
     //lendo cada bit
-    while ((bit1 = ler_bit(byte_lido)) != 255)
-
+    while (atual)
     {
-        printf("bit1: %d\n", bit1);
-        bit2 =  ler_bit(byte_lido);
+        bit1 = ler_bit(arvore);
+        bit2 =  ler_bit(arvore);
+
+#if DEBUG
+	printf("par lido %d%d\n", bit1, bit2);
+	//getchar();
+#endif
         //criando filhos se tiver
         if(bit2 == 1)
         {
+#if DEBUG
+	  printf("Cria filho a direita\n");
+#endif
             atual->dir = aloca_arvore();
             coloca_na_pilha(pilha_de_filhos, atual -> dir);
         }
         if (bit1 == 1)
         {
+#if DEBUG
+            printf("Cria filho a esquerda\n");
+#endif
             atual->esq = aloca_arvore();
             coloca_na_pilha(pilha_de_filhos, atual -> esq);
         }
         //iniciando a cor no Nó se for uma folha
         if((bit1 == 0) && (bit2 == 0))
-            le_cor(atual, byte_lido);
-
+        {
+            if (!atual) printf("lendo cor em NULL");
+#if DEBUG
+            printf("Le uma cor\n");
+#endif	    
+            le_cor(atual, arvore);
+        }
         //pega o proximo ponteiro
+#if DEBUG
+	printf("\npegando proximo no da pilha\n");
+#endif
         atual = retira_da_pilha(pilha_de_filhos);
-
-        //se acabou a arvore encerra o loop
-        if (atual == NULL)
-            break;
+#if DEBUG
+        printf("a pilha ainda tem %d\n", pilha_de_filhos->quantidade);
+#endif
     }
 
-
-    fechar_Leitor_de_bytes(byte_lido);
+    //Aqui a arvore ja foi lida logo a gente garante que o proximo leitor vai começar na proxima arvore e nao em padding
+    //while(arvore -> posicao_bit < 8)
+        //bit1 == ler_bit(arvore);
 
     //debugando com print pq né
+#if DEBUG
     mostra_arvore(raiz, 0);
+#endif
+    desaloca_pilha(pilha_de_filhos);
 
-    //arvore feita ======================================
-    printf("Arvore lida e feita\n");
+    *at_tree = fechar_Leitor_de_bytes(arvore);
 
-    //abrindo o arquivo
-    byte_lido = codigo;
-    if (!byte_lido)
-        return 1;
+#if DEBUG
+    printf("\n at_huff: %d\n", *at_tree);
+#endif
+
+    Leitor_de_bytes* codigo = criar_Leitor_de_bytes(huff, *at_huff);
+    if (!codigo) return 1;
 
     //lendo cada bit
-    atual = raiz;
-    uint8_t saida[ALTURA][LARGURA][CANAIS];
-    for (int y = 0 ; y < ALTURA ; y++)
+    for (int y = 0 ; y < altura ; y++)
     {
-        printf("y: %d\n", y);
-        for (int x = 0 ; x < LARGURA ; x++)
+        for (int x = 0 ; x < largura ; x++)
         {
-            printf("x: %d\n", x);
-            while (!(atual -> folha))
-            {
-                //codigo de huffman até encontrar a cor
-                bit1 = ler_bit(byte_lido);
-                if (bit1 == 1)
-                    atual = atual->esq;
-                else if (bit1 == 0)
-                    atual = atual -> dir;
-            }
-
-            // TODO: usar essa saida, ou retornar a matriz na funcao para concatenar no arquivo BMP
-            //colocando a cor na saida
-            saida[y][x][0] = atual -> r;
-            saida[y][x][1] = atual -> g;
-            saida[y][x][2] = atual -> b;
             //reiniciando o atual na raiz
             atual = raiz;
+            while (atual->esq || atual->dir) //no huff nao tem no de 1 só
+            {
+                //codigo de huffman até encontrar a cor
+                bit1 = ler_bit(codigo);
+                if (bit1 == 0){
+                    if (!atual->esq){
+                        printf("\ntentou acessar esq inexistente");
+                    }
+                    else
+                        atual = atual->esq;
+                }
+                else if (bit1 == 1)
+                {
+                    if (!atual->dir){
+                        printf("\ntentou acessar esq inexistente");
+                    }
+                    else
+                        atual = atual -> dir;
+                }
+                else
+                    printf("LEU ALGUMA COISA MUITO ERRADA");
+            }
+            //colocando a cor na saida
+#if DEBUG
+	    printf(" x: %d, y: %d cor (%d,%d,%d)\n", x_ini_saida + x,  y_ini_saida + y, atual->r,atual->g,atual->b);
+#endif	    
+            saida[0][y_ini_saida + y][x_ini_saida + x] = atual -> r / 255.0;
+            saida[1][y_ini_saida + y][x_ini_saida + x] = atual -> g / 255.0;
+            saida[2][y_ini_saida + y][x_ini_saida + x] = atual -> b / 255.0;
         }
     }
 
+    desaloca_arvore(raiz);
+    *at_huff = fechar_Leitor_de_bytes(codigo);
+#if DEBUG
+    printf("\n at_huff: %d\n", *at_huff);
+#endif
 
     //fecha o arquivo do codigo
-    fechar_Leitor_de_bytes(byte_lido);
+    //fechar_Leitor_de_bytes(byte_lido);
 
-    mostra_saida(saida);
+    //mostra_saida(saida);
 
     return 0;
-    
-    
 }
 
-// TODO: transformar a main em uma funcao, desconpacta_grid ou algo assim que recebe como parametros (altura da grid, largura da grid, leitor de bytes da arvore, e leitor de bytes do codigo de huff)
-// OBS, tem que adaptar dentro do codigo tirando a criacao do leitor_de_bytes pra fora, se quiser ler como ele funciona é bem simples só tem uma funcao de verdade, se nao eu arrumo isso amanha ou algum outro dia com mais calma
-int main_teste() {
-    //abrindo o arquivo
-    Leitor_de_bytes *byte_lido = criar_Leitor_de_bytes(ARVORE);
-    if (!byte_lido)
+
+int main()
+{
+    printf("descompactando arquivo %s e %s...\n", CODIGO, ARVORE);
+    Imagem* saida = criaImagem(LARGURA_IMAGEM, ALTURA_IMAGEM, CANAIS);
+    if (!saida)
         return 1;
 
-    int bit1, bit2;
-    Arvore* raiz = aloca_arvore();
-    Arvore* atual = raiz;
-    Pilha* pilha_de_filhos = inicializa_pilha(TAM_PILHA);
+    int grid = 0;
 
-    //lendo cada bit
-    while ((bit1 = ler_bit(byte_lido)) != 255)
+    int atual_huff = 0;
+    int atual_arvore = 0;
 
+    for (int y_out = 0 ; y_out < ALTURA_IMAGEM ; y_out += TAM_GRID)
     {
-        bit2 =  ler_bit(byte_lido);
-        //criando filhos se tiver
-        if(bit2 == 1)
+        for(int x_out = 0 ; x_out < LARGURA_IMAGEM ; x_out+= TAM_GRID, grid++)
         {
-            atual->dir = aloca_arvore();
-            coloca_na_pilha(pilha_de_filhos, atual -> dir);
-        }
-        if (bit1 == 1)
-        {
-            atual->esq = aloca_arvore();
-            coloca_na_pilha(pilha_de_filhos, atual -> esq);
-        }
-        //iniciando a cor no Nó se for uma folha
-        if((bit1 == 0) && (bit2 == 0))
-            le_cor(atual, byte_lido);
+            descompacta_grid(TAM_GRID, TAM_GRID, ARVORE, &atual_arvore, &atual_huff, CODIGO, saida->dados, x_out, y_out);
 
-        //pega o proximo ponteiro
-        atual = retira_da_pilha(pilha_de_filhos);
-
-        //se acabou a arvore encerra o loop
-        if (atual == NULL)
-            break;
-    }
-
-    fechar_Leitor_de_bytes(byte_lido);
-
-    //debugando com print pq né
-    //mostra_arvore(raiz, 0);
-
-    //arvore feita ======================================
-
-    //abrindo o arquivo
-    byte_lido = criar_Leitor_de_bytes(CODIGO);
-    if (!byte_lido)
-        return 1;
-
-    //lendo cada bit
-    atual = raiz;
-    uint8_t saida[ALTURA][LARGURA][CANAIS];
-    for (int y = 0 ; y < ALTURA ; y++)
-    {
-        for (int x = 0 ; x < LARGURA ; x++)
-        {
-            while (!(atual -> folha))
-            {
-                //codigo de huffman até encontrar a cor
-                bit1 = ler_bit(byte_lido);
-                if (bit1 == 1)
-                    atual = atual->esq;
-                else if (bit1 == 0)
-                    atual = atual -> dir;
-            }
-
-            // TODO: usar essa saida, ou retornar a matriz na funcao para concatenar no arquivo BMP
-            //colocando a cor na saida
-            saida[y][x][0] = atual -> r;
-            saida[y][x][1] = atual -> g;
-            saida[y][x][2] = atual -> b;
-            //reiniciando o atual na raiz
-            atual = raiz;
+#if DEBUG
+            printf("Grid Atual: %d\n", grid);
+#endif
         }
     }
-
-
-    //fecha o arquivo do codigo
-    fechar_Leitor_de_bytes(byte_lido);
-
-    mostra_saida(saida);
-
-    return 0;
+    salvaImagem(saida, SAIDA);
+    printf("arquivo descompactado %s\n", SAIDA);
 }

@@ -9,5 +9,6 @@ typedef struct {
 Pilha* inicializa_pilha(int tam);
 void coloca_na_pilha(Pilha* pil, Arvore* arv);
 Arvore* retira_da_pilha(Pilha* pil);
+void desaloca_pilha(Pilha* pil);
 
 #endif
