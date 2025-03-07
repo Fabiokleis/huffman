@@ -1,5 +1,5 @@
 # huffman
-implementacao da arvore de huffman.
+implementacao da arvore de huffman e kmeans para compressao e descompressao lossy de imagens.
 
 ## makefile
 
